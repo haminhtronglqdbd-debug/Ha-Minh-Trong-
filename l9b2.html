@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bài Tập Tương Tác KHTN 9: Động năng - Thế năng</title>
+    <title>Bài Tập Tương Tác KHTN 9: Bài 2:  Động năng - Thế năng</title>
+    <!-- Thư viện Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện Âm thanh Tone.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Thư viện Pháo giấy Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; scroll-behavior: smooth; }
         
         /* TỐI ƯU MATHJAX: CHỐNG NHẢY DÒNG VÀ HIỂN THỊ CÙNG DÒNG VĂN BẢN */
         mjx-container { display: inline-block !important; pointer-events: none; }
@@ -18,57 +21,58 @@
         
         /* KÉO THẢ & CLICK-TO-MATCH CSS */
         .blank-slot { 
-            display: inline-block; min-width: 80px; min-height: 28px; 
-            border-bottom: 2px dashed #f59e0b; text-align: center; 
-            padding: 2px 8px; margin: 0 4px; cursor: pointer; color: #b45309; font-weight: 600;
-            background-color: #fffbeb; border-radius: 4px; transition: all 0.2s;
+            display: inline-flex; align-items: center; justify-content: center; min-width: 80px; min-height: 28px; 
+            border-bottom: 2px dashed #3b82f6; text-align: center; 
+            padding: 2px 8px; margin: 0 4px; cursor: pointer; color: #1d4ed8; font-weight: 600;
+            background-color: #eff6ff; border-radius: 4px; transition: all 0.2s; vertical-align: bottom;
         }
-        .blank-slot:hover { background-color: #fef3c7; }
+        .blank-slot:hover { background-color: #dbeafe; }
         .word-chip {
-            display: inline-block; padding: 8px 16px; margin: 4px; 
+            display: inline-block; padding: 6px 12px; margin: 4px; 
             background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 999px;
-            cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); user-select: none;
-            transition: all 0.2s; font-weight: 500; color: #374151;
+            cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); user-select: none;
+            transition: all 0.2s; font-weight: 500;
         }
-        .word-chip.selected { background-color: #f59e0b; color: white; border-color: #d97706; transform: scale(1.05); box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3); }
-        .word-chip.used { opacity: 0.4; pointer-events: none; background-color: #f3f4f6; }
+        .word-chip.selected { background-color: #3b82f6; color: white; border-color: #2563eb; transform: scale(1.05); shadow: md; }
+        .word-chip.used { opacity: 0.4; pointer-events: none; background-color: #e5e7eb; color: #6b7280; }
 
         /* SCROLLBAR & STICKY NAV */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
         .sticky-nav {
             position: sticky; top: 0; z-index: 40; background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(8px); border-bottom: 1px solid #e5e7eb;
         }
         .nav-btn {
-            width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
-            font-weight: 600; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; flex-shrink: 0;
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; flex-shrink: 0;
         }
         .nav-btn.unanswered { background-color: #d1fae5; color: #065f46; border-color: #34d399; }
         .nav-btn.answered { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
-        .nav-btn.active { box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4); border-color: #d97706; transform: translateY(-2px); }
+        .nav-btn.active { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3); border-color: #2563eb; transform: translateY(-2px); }
 
         /* MATCHING PAIRS CSS */
         .match-item {
-            padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer;
+            padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer;
             transition: all 0.2s; background: white; user-select: none; text-align: center; font-weight: 500;
         }
-        .match-item.selected { border-color: #f59e0b; background-color: #fffbeb; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); transform: scale(1.02); }
-        .match-item.paired { border-color: #10b981; background-color: #ecfdf5; color: #065f46; pointer-events: none; opacity: 0.8; }
+        .match-item.selected { border-color: #3b82f6; background-color: #eff6ff; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+        .match-item.paired { border-color: #10b981; background-color: #d1fae5; color: #065f46; pointer-events: none; }
         
         /* MODAL */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
             display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 90vw; max-height: 90vh; overflow-y: auto;}
         .modal-overlay.active .modal-content { transform: scale(1); }
     </style>
+    <!-- Cấu hình MathJax an toàn -->
     <script>
         window.MathJax = {
             startup: { typeset: false },
@@ -80,25 +84,57 @@
 </head>
 <body>
 
+<!-- Giao diện chính của App -->
 <div id="app" class="min-h-screen"></div>
 
-<!-- GIAO DIỆN MODAL DÙNG CHUNG -->
 <div id="custom-modal" class="modal-overlay">
-    <div class="modal-content bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border-t-8 border-t-orange-500">
-        <h3 id="modal-title" class="text-2xl font-black text-gray-800 mb-3 uppercase tracking-tight"></h3>
-        <p id="modal-msg" class="text-gray-600 mb-6 font-medium text-lg leading-relaxed"></p>
+    <div class="modal-content bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border-t-8 border-blue-500 text-center">
+        <h3 id="modal-title" class="text-2xl font-black text-gray-800 mb-3"></h3>
+        <p id="modal-msg" class="text-gray-600 mb-8 text-lg font-medium leading-relaxed"></p>
         <div id="modal-inputs" class="mb-6 hidden"></div>
-        <div class="flex justify-end space-x-3">
-            <button id="modal-btn-cancel" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition hidden">Hủy bỏ</button>
-            <button id="modal-btn-confirm" class="px-5 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition shadow-lg">Xác nhận</button>
+        <div class="flex gap-4 justify-center">
+            <button id="modal-btn-cancel" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition hidden">Hủy Bỏ</button>
+            <button id="modal-btn-confirm" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Xác Nhận</button>
         </div>
     </div>
 </div>
 
 <script type="module">
-    // ==========================================
-    // 1. DATA: NGÂN HÀNG CÂU HỎI (25 CÂU CHUẨN KHTN 9 - BÀI 2)
-    // ==========================================
+    // CẦN CÓ ĐỐI TƯỢNG MODAL
+    const MODAL = {
+        show: (title, msg, onConfirm, showCancel = false, customHtml = '') => {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerHTML = msg;
+            
+            const inputs = document.getElementById('modal-inputs');
+            if (customHtml) {
+                inputs.innerHTML = customHtml;
+                inputs.classList.remove('hidden');
+            } else {
+                inputs.innerHTML = '';
+                inputs.classList.add('hidden');
+            }
+
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            if (showCancel) {
+                btnCancel.classList.remove('hidden');
+                btnCancel.onclick = () => MODAL.hide();
+            } else {
+                btnCancel.classList.add('hidden');
+            }
+
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+            btnConfirm.onclick = () => {
+                if (onConfirm) onConfirm();
+            };
+
+            document.getElementById('custom-modal').classList.add('active');
+        },
+        hide: () => {
+            document.getElementById('custom-modal').classList.remove('active');
+        }
+    };
+
     const rawQuestions = [
         // DẠNG 1: TRẮC NGHIỆM 4 LỰA CHỌN (MC) - 5 Câu
         {
@@ -136,7 +172,7 @@
                 { text: "Ngay khi vừa chạm đất, thế năng của quả bóng bằng 0.", correct: true },
                 { text: "Thế năng trọng trường của quả bóng luôn tỉ lệ nghịch với khối lượng của nó.", correct: false }
             ],
-            explain: "A Đúng: Đang rơi có $v > 0$ và $h > 0$. B Sai: Rơi nhanh dần nên động năng tăng dần. C Đúng: Chạm gốc thế năng $h=0$ nên $W_t = 0$. D Sai: $W_t = Ph = mgh$, thế năng tỉ lệ thuận với khối lượng $m$."
+            explain: "A Đúng: Đang rơi có $v > 0$ và $h > 0$. B Sai: Rơi nhanh dần nên động năng tăng dần. C Đúng: Chạm gốc thế năng $h=0$ nên $W_t = 0$. D Sai: $W_t = Ph = mgh$, thế năng tỉ lệ thuận với khối lượng $m$, không phải tỉ lệ nghịch."
         },
         {
             type: 'TF_CLUSTER', text: "Dựa vào hình ảnh đập thủy điện (Hình 2.3 - SGK), đánh giá các nhận định về việc khai thác năng lượng nước:",
@@ -146,17 +182,17 @@
                 { text: "Khi nước chảy từ trên cao xuống, thế năng của nước chuyển hóa thành động năng làm quay tuabin.", correct: true },
                 { text: "Đại lượng $h$ trong công thức $W_t = Ph$ của đập nước không phụ thuộc vào vị trí đặt tuabin.", correct: false }
             ],
-            explain: "A Sai: Nước đứng yên trong hồ dự trữ THẾ NĂNG. B Đúng & C Đúng: Trích chuẩn nguyên lí SGK trang 16. D Sai: $h$ là độ cao so với gốc (thường chọn ngang tuabin), nên nó phụ thuộc vị trí đặt tuabin."
+            explain: "A Sai: Nước đứng yên trong hồ dự trữ THẾ NĂNG, không phải động năng. B Đúng & C Đúng: SGK trang 16 giải thích nguyên lí đập thủy điện. D Sai: $h$ là độ cao so với gốc (thường chọn ngang tuabin), nên nó phụ thuộc vị trí đặt tuabin."
         },
         {
             type: 'TF_CLUSTER', text: "Phân tích đặc điểm của Động năng và Thế năng:",
             statements: [
                 { text: "Hai vật có cùng khối lượng, vật nào chuyển động nhanh hơn thì có động năng lớn hơn.", correct: true },
-                { text: "Giá trị của thế năng không bao giờ phụ thuộc vào vị trí chọn làm gốc.", correct: false },
+                { text: "Giá trị của thế năng không bao giờ phụ thuộc vào vị trí chọn làm mốc.", correct: false },
                 { text: "Động năng của một vật luôn là một đại lượng vô hướng và có giá trị lớn hơn hoặc bằng không.", correct: true },
                 { text: "Mọi vật xung quanh ta dù đứng yên hay chuyển động đều có động năng.", correct: false }
             ],
-            explain: "A Đúng: $W_d \\sim v^2$. B Sai: Thế năng phụ thuộc chặt chẽ vào gốc chọn để tính độ cao (SGK trang 16). C Đúng: $v^2 \\ge 0$ nên $W_d \\ge 0$. D Sai: Vật đứng yên ($v=0$) thì $W_d = 0$."
+            explain: "A Đúng: $W_d \\sim v^2$. B Sai: Thế năng phụ thuộc vào gốc chọn độ cao. C Đúng: Năng lượng vô hướng, $v^2 \\ge 0$ nên $W_d \\ge 0$. D Sai: Vật đứng yên ($v=0$) thì $W_d = 0$ (không có động năng)."
         },
         {
             type: 'TF_CLUSTER', text: "Một công nhân vác bao xi măng trọng lượng 500 N trên vai, đứng trên sân thượng tòa nhà cao 20 m so với mặt đất. Bao xi măng cách sân thượng 1,4 m. Phân tích các phát biểu:",
@@ -166,7 +202,7 @@
                 { text: "Khối lượng của bao xi măng là $50$ kg (lấy $g \\approx 10 m/s^2$).", correct: true },
                 { text: "Thế năng của bao xi măng hoàn toàn giống nhau bất kể công nhân đứng ở tầng mấy.", correct: false }
             ],
-            explain: "A Sai: So với mặt đất, $h = 20 + 1,4 = 21,4$ m $\\rightarrow W_t = 500 \\times 21,4 = 10700$ J. B Đúng: So với sân thượng, $h = 1,4$ m $\\rightarrow W_t = 500 \\times 1,4 = 700$ J. C Đúng: $m = P/10 = 50$ kg. D Sai: Thế năng phụ thuộc độ cao."
+            explain: "A Sai: So với mặt đất, $h = 20 + 1,4 = 21,4$ m $\\rightarrow W_t = 500 \\times 21,4 = 10700$ J. B Đúng: So với sân thượng, $h = 1,4$ m $\\rightarrow W_t = 500 \\times 1,4 = 700$ J. C Đúng: $m = P/10 = 50$ kg. D Sai: Thế năng phụ thuộc độ cao $h$."
         },
         {
             type: 'TF_CLUSTER', text: "Xét các phát biểu về công thức Vật lí:",
@@ -176,7 +212,7 @@
                 { text: "Trong công thức $W_t = P \\cdot h$, $h$ là độ cao so với vị trí được chọn làm gốc.", correct: true },
                 { text: "1 Joule (J) có giá trị tương đương với $1 kg \\cdot m^2/s^2$.", correct: true }
             ],
-            explain: "A Sai: Thiếu hệ số $\\frac{1}{2}$. B Sai: $P$ là trọng lượng (N), $m$ mới là khối lượng. C Đúng: Khái niệm SGK trang 16. D Đúng: Phân tích thứ nguyên từ $W_d = \\frac{1}{2}mv^2$."
+            explain: "A Sai: Thiếu hệ số $\\frac{1}{2}$. B Sai: $P$ là trọng lượng (N), $m$ mới là khối lượng. C Đúng: SGK trang 16. D Đúng: Phân tích đơn vị từ $W_d = \\frac{1}{2}mv^2 \\rightarrow kg \\cdot (m/s)^2$."
         },
 
         // DẠNG 3: TRẢ LỜI NGẮN (SHORT_ANS) - 5 Câu
@@ -196,7 +232,7 @@
             explain: "Áp dụng công thức: $W_t = P \\cdot h = 800 \\cdot 1,2 = 960$ (J)."
         },
         {
-            type: 'SHORT_ANS', text: "So sánh thế năng trọng trường của hai vật ở cùng một độ cao so với gốc thế năng. Khối lượng vật 1 gấp 3 lần khối lượng vật 2. Lập tỉ số $\\frac{W_{t1}}{W_{t2}}$?",
+            type: 'SHORT_ANS', text: "So sánh thế năng trọng trường của hai vật ở cùng một độ cao so với gốc thế năng. Khối lượng vật 1 gấp 3 lần vật 2. Lập tỉ số $\\frac{W_{t1}}{W_{t2}}$?",
             correct: 3,
             explain: "$W_t = P \\cdot h = 10m \\cdot h$. Vì $h$ giống nhau, thế năng tỉ lệ thuận với khối lượng. $m_1 = 3m_2 \\rightarrow W_{t1} = 3W_{t2}$."
         },
@@ -208,14 +244,14 @@
 
         // DẠNG 4: GHÉP NỐI (MATCH) - 5 Câu
         {
-            type: 'MATCH', text: "Ghép nối các đại lượng Vật lí với biểu thức/đơn vị tương ứng (Bám sát SGK trang 16):",
+            type: 'MATCH', text: "Ghép nối các đại lượng Vật lí với biểu thức/đơn vị tương ứng:",
             pairs: [
                 { left: "Động năng ($W_d$)", right: "$\\frac{1}{2}mv^2$" },
                 { left: "Thế năng trọng trường ($W_t$)", right: "$P \\cdot h$" },
                 { left: "Khối lượng vật ($m$)", right: "Kilôgam (kg)" },
                 { left: "Trọng lượng vật ($P$)", right: "Newton (N)" }
             ],
-            explain: "Các kí hiệu chuẩn SGK: $W_d$ tính bằng nửa tích m và v bình; $W_t$ tính bằng P nhân h; đơn vị khối lượng là kg, trọng lượng là N."
+            explain: "Dựa vào SGK Trang 16, các kí hiệu chuẩn là: $W_d$ (J) tính bằng nửa tích m và v bình; $W_t$ (J) tính bằng P nhân h; m (kg); P (N)."
         },
         {
             type: 'MATCH', text: "Ghép nối các hiện tượng đời sống với loại năng lượng mà vật đang có (chọn gốc thế năng tại mặt đất):",
@@ -225,7 +261,7 @@
                 { left: "Quả bóng bowling lăn trên sàn phẳng", right: "Chỉ có động năng" },
                 { left: "Quyển sách nằm yên trên nóc tủ", right: "Chỉ có thế năng trọng trường" }
             ],
-            explain: "Đang rơi: có v và h. Kéo căng: đàn hồi. Lăn trên sàn: $h=0 \\rightarrow W_t = 0$. Nằm yên trên cao: $v=0 \\rightarrow W_d = 0$."
+            explain: "Rơi: đang chuyển động và ở trên cao. Kéo căng: đàn hồi. Lăn trên sàn (gốc TN): $h=0 \\rightarrow W_t = 0$. Nằm yên trên cao: $v=0 \\rightarrow W_d = 0$."
         },
         {
             type: 'MATCH', text: "Ghép yếu tố thay đổi với sự thay đổi của Động năng tương ứng (Khối lượng không đổi):",
@@ -238,127 +274,91 @@
             explain: "Động năng tỉ lệ với BÌNH PHƯƠNG tốc độ. Vận tốc biến thiên k lần thì động năng biến thiên $k^2$ lần."
         },
         {
-            type: 'MATCH', text: "Ghép các kí hiệu trong biểu thức Vật lí với ý nghĩa của nó (SGK trang 16):",
+            type: 'MATCH', text: "Ghép các kí hiệu trong biểu thức Vật lí với ý nghĩa của nó:",
             pairs: [
                 { left: "Kí hiệu $v$", right: "Tốc độ của vật" },
-                { left: "Kí hiệu $h$", right: "Độ cao so với gốc" },
-                { left: "Kí hiệu $P$", right: "Trọng lượng của vật" },
+                { left: "Kí hiệu $h$", right: "Độ cao so với mốc" },
+                { left: "Kí hiệu $P$", right: "Độ lớn lực hút của Trái Đất" },
                 { left: "Kí hiệu $J$", right: "Đơn vị đo năng lượng" }
             ],
-            explain: "Các định nghĩa chuẩn của $v, h, P, J$ trong chú thích công thức SGK KHTN 9 Bài 2."
+            explain: "Các định nghĩa chuẩn của $v, h, P, J$ trong SGK KHTN 9 Bài 2."
         },
         {
-            type: 'MATCH', text: "Một học sinh tung quả bóng từ mặt đất lên cao 2m rồi bắt lại. Ghép trạng thái bóng với các giá trị năng lượng (Gốc thế năng ở mặt đất):",
+            type: 'MATCH', text: "Một học sinh tung quả bóng từ mặt đất lên cao 2m rồi bắt lại. Ghép trạng thái bóng với các giá trị năng lượng (Gốc TN ở mặt đất):",
             pairs: [
                 { left: "Tại mặt đất, vừa rời khỏi tay", right: "$W_d$ lớn nhất, $W_t = 0$" },
                 { left: "Tại điểm cao nhất (2m)", right: "$W_t$ lớn nhất, $W_d = 0$" },
                 { left: "Đang bay lên ở độ cao 1m", right: "$W_d$ đang giảm, $W_t$ đang tăng" },
                 { left: "Đang rơi xuống ở độ cao 1m", right: "$W_d$ đang tăng, $W_t$ đang giảm" }
             ],
-            explain: "Lên cao: tốc độ giảm, độ cao tăng. Điểm cao nhất: tốc độ bằng 0. Rơi xuống: tốc độ tăng, độ cao giảm. Tại mặt đất: h=0."
+            explain: "Lên cao: v giảm, h tăng. Điểm cao nhất: v=0. Rơi xuống: v tăng, h giảm. Mặt đất: h=0."
         },
 
-        // DẠNG 5: ĐIỀN TỪ KÉO THẢ (FILL_BLANK) - 5 Câu
+        // DẠNG 5: ĐIỀN TỪ (FILL_BLANK) - 5 Câu
         {
             type: 'FILL_BLANK', 
             text: "Một quả bóng bi-a chuyển động đến đập vào quả bóng bi-a khác làm cho chúng biến đổi chuyển động. Năng lượng mà vật có được do [1] như trong ví dụ trên gọi là [2].",
             words: ["chuyển động", "đứng yên", "động năng", "thế năng"],
             correct: { '1': 'chuyển động', '2': 'động năng' },
-            explain: "Trích đoạn SGK Trang 15: Năng lượng mà vật có được do chuyển động gọi là động năng."
+            explain: "Trích đoạn khái niệm SGK Trang 15: Năng lượng mà vật có được do chuyển động gọi là động năng."
         },
         {
             type: 'FILL_BLANK', 
             text: "Để dự trữ năng lượng, người ta xây dựng những đập nước ngăn các dòng chảy để tạo thành những [1]. Lượng nước trong hồ chứa càng lớn thì [2] được tích trữ càng lớn.",
-            words: ["hồ chứa nước", "dòng sông", "động năng", "năng lượng"],
+            words: ["dòng sông", "hồ chứa nước", "động năng", "năng lượng"],
             correct: { '1': 'hồ chứa nước', '2': 'năng lượng' },
-            explain: "Trích đoạn SGK Trang 16 phần ứng dụng nhà máy thủy điện: xây đập tạo hồ chứa nước để tích trữ năng lượng."
+            explain: "Trích đoạn SGK Trang 16 về ứng dụng nhà máy thủy điện: xây đập tạo hồ chứa nước để tích trữ năng lượng dưới dạng thế năng."
         },
         {
             type: 'FILL_BLANK', 
-            text: "Thế năng trọng trường (gọi tắt là thế năng) là năng lượng của một vật khi nó ở một [1] nhất định so với mặt đất hoặc so với một vật được chọn làm [2] để tính độ cao.",
-            words: ["vận tốc", "độ cao", "gốc", "đỉnh"],
-            correct: { '1': 'độ cao', '2': 'gốc' },
-            explain: "Trích định nghĩa chính thức của Thế năng trọng trường ở đầu SGK Trang 16 (chú ý dùng từ 'gốc')."
+            text: "Thế năng trọng trường (gọi tắt là thế năng) là năng lượng của một vật khi nó ở một [1] nhất định so với [2] hoặc so với một vật được chọn làm mốc để tính độ cao.",
+            words: ["vận tốc", "độ cao", "mặt đất", "mặt nước"],
+            correct: { '1': 'độ cao', '2': 'mặt đất' },
+            explain: "Khái niệm chính thức Thế năng trọng trường SGK Trang 16."
         },
         {
             type: 'FILL_BLANK', 
-            text: "Trong ví dụ búa máy (Hình 2.1), nếu búa có [1] càng lớn và chuyển động càng [2] thì khi đập vào thanh thép sẽ làm thanh thép biến dạng càng nhiều, chứng tỏ động năng của búa càng lớn.",
+            text: "Trong ví dụ búa máy đóng cọc, nếu búa có [1] càng lớn và chuyển động càng [2] thì khi đập vào thanh thép sẽ làm thanh thép biến dạng càng nhiều, chứng tỏ động năng của búa càng lớn.",
             words: ["khối lượng", "trọng lượng", "nhanh", "chậm"],
             correct: { '1': 'khối lượng', '2': 'nhanh' },
-            explain: "SGK Trang 15 mô tả sự phụ thuộc của động năng vào khối lượng (m) và tốc độ chuyển động (nhanh/chậm)."
+            explain: "SGK Trang 15 mô tả thí nghiệm thực tế chứng minh sự phụ thuộc của động năng vào khối lượng (m) và tốc độ (v)."
         },
         {
             type: 'FILL_BLANK', 
-            text: "Ngoài thế năng trọng trường, trong thực tiễn vật còn có thể dự trữ năng lượng dưới các dạng thế năng sau: Thế năng [1] (ví dụ dây cung bị kéo căng), thế năng [2] (khi các điện tích đặt cạnh nhau).",
+            text: "Ngoài thế năng trọng trường, trong thực tiễn vật còn có thể dự trữ năng lượng dưới các dạng thế năng sau: Thế năng [1] (ví dụ dây cung bị kéo căng), thế năng [2] (khi điện tích đặt cạnh nhau).",
             words: ["đàn hồi", "tĩnh điện", "từ trường", "cơ học"],
             correct: { '1': 'đàn hồi', '2': 'tĩnh điện' },
             explain: "Phần 'Em có thể' SGK Trang 17 giới thiệu mở rộng về thế năng đàn hồi và thế năng tĩnh điện."
         }
     ];
 
-    // ==========================================
-    // 2. STATE MANAGEMENT & CORE LOGIC
-    // ==========================================
     const AppState = {
         status: 'LOGIN', // LOGIN, QUIZ, RESULT, ADMIN
         user: { type: '', name: '', id: '' },
         questions: [],
         answers: {}, // { qId: answer_data }
-        timeLeft: 600, // 10 phút = 600s
+        timeLeft: 600,
         timerInt: null,
-        adminTab: 'GROUP', // GROUP, INDIV, EXAM
-        matchPairsState: {}, // Trạng thái click cho câu Match
-        fillBlankState: {} // Trạng thái click cho Fill Blank
+        adminTab: 'GROUP', // GROUP, INDIVIDUAL, EXAM
+        matchPairsState: {}, 
+        fillBlankState: {},
+        currentActiveQId: 1 // Track câu đang làm để highlight Nav
     };
 
-    const MODAL = {
-        show: (title, msg, onConfirm, showCancel = false, customHtml = '') => {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-msg').innerHTML = msg;
-            
-            const inputs = document.getElementById('modal-inputs');
-            if (customHtml) {
-                inputs.innerHTML = customHtml;
-                inputs.classList.remove('hidden');
-            } else {
-                inputs.innerHTML = '';
-                inputs.classList.add('hidden');
-            }
-
-            const btnCancel = document.getElementById('modal-btn-cancel');
-            if (showCancel) {
-                btnCancel.classList.remove('hidden');
-                btnCancel.onclick = () => MODAL.hide();
-            } else {
-                btnCancel.classList.add('hidden');
-            }
-
-            const btnConfirm = document.getElementById('modal-btn-confirm');
-            btnConfirm.onclick = () => {
-                if (onConfirm) onConfirm();
-            };
-
-            document.getElementById('custom-modal').classList.add('active');
-        },
-        hide: () => {
-            document.getElementById('custom-modal').classList.remove('active');
-        }
-    };
-
+    // Utils
     const shuffleArray = (arr) => arr.map(a => ({sort: Math.random(), value: a})).sort((a, b) => a.sort - b.sort).map(a => a.value);
     
     const playSound = (isSuccess) => {
         try {
             Tone.start();
             const synth = new Tone.Synth().toDestination();
-            if (isSuccess) synth.triggerAttackRelease("E5", "8n");
+            if (isSuccess) synth.triggerAttackRelease("C5", "8n");
             else synth.triggerAttackRelease("C3", "8n");
         } catch (e) { console.log('Audio error ignored'); }
     };
 
     const initQuiz = () => {
         let qs = JSON.parse(JSON.stringify(rawQuestions));
-        // Xáo trộn 25 câu hỏi
         qs = shuffleArray(qs).map((q, idx) => {
             q.displayId = idx + 1;
             if (q.type === 'MC') {
@@ -372,7 +372,7 @@
                 AppState.matchPairsState[q.displayId] = { selectedLeft: null, selectedRight: null, pairs: [] };
             }
             if (q.type === 'FILL_BLANK') {
-                q.words = shuffleArray(q.words);
+                q.words = shuffleArray(q.words); 
                 AppState.fillBlankState[q.displayId] = { selectedWord: null, blanks: {} };
             }
             return q;
@@ -381,13 +381,14 @@
         AppState.answers = {};
         AppState.timeLeft = 600;
         AppState.status = 'QUIZ';
+        AppState.currentActiveQId = 1;
         
         AppState.timerInt = setInterval(() => {
             AppState.timeLeft--;
             renderTimer();
             if (AppState.timeLeft <= 0) {
                 clearInterval(AppState.timerInt);
-                submitExam();
+                submitExam(true); // Gửi thêm cờ timeout = true
             }
         }, 1000);
         
@@ -403,70 +404,55 @@
         }, 50);
     };
 
-    // ==========================================
-    // 3. UI RENDERING FUNCTIONS
-    // ==========================================
-    
     const renderLogin = () => `
-        <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 p-4 relative overflow-hidden">
-            <!-- Pattern nền -->
-            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
-
-            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row relative z-10 border border-orange-100">
-                <div class="md:w-5/12 bg-gradient-to-b from-orange-500 to-amber-600 p-10 text-white flex flex-col justify-center relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-10 -mt-10 blur-xl"></div>
-                    <div class="relative z-10">
-                        <span class="inline-block py-1 px-3 bg-white/20 rounded-full text-sm font-bold tracking-wider mb-4 border border-white/30 backdrop-blur-sm">KHOA HỌC TỰ NHIÊN 9</span>
-                        <h1 class="text-4xl font-black mb-6 leading-tight drop-shadow-md">Năng Lượng<br/>Cơ Học</h1>
-                        <p class="text-orange-100 mb-8 font-medium text-lg bg-black/10 p-3 rounded-lg border-l-4 border-orange-300">Bài 2: Động năng - Thế năng</p>
-                        
-                        <div class="space-y-4 mt-8">
-                            <button onclick="App.showAdminLogin('TEACHER')" class="w-full text-left p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all font-semibold flex items-center gap-3 border border-white/20 hover:border-white/40 shadow-sm backdrop-blur-sm">
-                                <span class="text-2xl">👨‍🏫</span> Giáo viên đăng nhập
-                            </button>
-                            <button onclick="App.showAdminLogin('PARENT')" class="w-full text-left p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all font-semibold flex items-center gap-3 border border-white/20 hover:border-white/40 shadow-sm backdrop-blur-sm">
-                                <span class="text-2xl">👨‍👩‍👧</span> Phụ huynh theo dõi
-                            </button>
-                        </div>
+        <div class="flex flex-col items-center justify-center min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-white to-blue-50 p-4">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row border border-gray-100">
+                <div class="md:w-5/12 bg-gradient-to-b from-blue-600 to-indigo-700 p-10 text-white flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-indigo-300 opacity-20 rounded-full blur-3xl"></div>
+                    
+                    <h1 class="text-4xl font-black mb-4 leading-tight z-10 drop-shadow-md">KHTN 9<br/>Động năng<br/>Thế năng</h1>
+                    <p class="text-blue-100 mb-10 text-lg font-medium z-10 border-l-4 border-blue-400 pl-4">Bài Tập Tương Tác Chuẩn 2025</p>
+                    
+                    <div class="space-y-4 mt-auto z-10">
+                        <button onclick="App.showAdminLogin('TEACHER')" class="w-full text-left p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm flex items-center justify-between font-bold backdrop-blur-sm border border-white/20"><span>👨‍🏫 GIÁO VIÊN ĐĂNG NHẬP</span> <span class="text-xs opacity-70 font-normal">Quản lý</span></button>
+                        <button onclick="App.showAdminLogin('PARENT')" class="w-full text-left p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm flex items-center justify-between font-bold backdrop-blur-sm border border-white/20"><span>👨‍👩‍👧 PHỤ HUYNH ĐĂNG NHẬP</span> <span class="text-xs opacity-70 font-normal">Tra cứu</span></button>
                     </div>
                 </div>
-                <div class="md:w-7/12 p-10 bg-white">
-                    <div class="text-center mb-8">
-                        <h2 class="text-3xl font-black text-gray-800 tracking-tight">VÀO PHÒNG THI</h2>
-                        <p class="text-gray-500 mt-2 font-medium">Hoàn thành bài thi trong thời gian 10 phút</p>
-                    </div>
-
-                    <div class="flex p-1 bg-gray-100 rounded-xl mb-8">
-                        <button id="tab-indiv" onclick="App.switchLoginTab('INDIV')" class="flex-1 py-3 text-center rounded-lg font-bold bg-white text-orange-600 shadow-sm transition-all">👤 Cá nhân</button>
-                        <button id="tab-group" onclick="App.switchLoginTab('GROUP')" class="flex-1 py-3 text-center rounded-lg font-bold text-gray-500 hover:text-gray-700 transition-all">👥 Làm theo Nhóm</button>
+                
+                <div class="md:w-7/12 p-10 md:p-14">
+                    <h2 class="text-3xl font-black text-gray-800 mb-8 text-center uppercase tracking-wider">Vào Phòng Thi</h2>
+                    <div class="flex border-b-2 border-gray-100 mb-8 gap-4">
+                        <button id="tab-indiv" onclick="App.switchLoginTab('INDIV')" class="flex-1 pb-4 text-center border-b-4 font-black border-blue-600 text-blue-600 transition-all text-lg">CÁ NHÂN</button>
+                        <button id="tab-group" onclick="App.switchLoginTab('GROUP')" class="flex-1 pb-4 text-center border-b-4 font-black border-transparent text-gray-400 hover:text-gray-600 transition-all text-lg">NHÓM</button>
                     </div>
                     
-                    <!-- Form Cá nhân -->
-                    <div id="form-indiv" class="space-y-5 animate-[fadeIn_0.3s]">
+                    <!-- Cá nhân -->
+                    <div id="form-indiv" class="space-y-6 animate-[fadeIn_0.3s_ease-out]">
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Họ và Tên</label>
-                            <input type="text" id="inp-name" class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 outline-none transition-all font-medium text-lg" placeholder="VD: Nguyễn Văn A">
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Họ và Tên</label>
+                            <input type="text" id="inp-name" class="w-full border-2 border-gray-200 rounded-xl p-4 text-lg font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm" placeholder="VD: Nguyễn Văn A">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Mật khẩu thi</label>
-                            <input type="password" id="inp-pass" class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 outline-none transition-all font-bold text-lg tracking-widest" placeholder="Mật khẩu là: 123456">
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Mật khẩu thi</label>
+                            <input type="password" id="inp-pass" class="w-full border-2 border-gray-200 rounded-xl p-4 text-lg font-bold tracking-widest text-center focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm" placeholder="***">
                         </div>
-                        <button onclick="App.doLogin('INDIVIDUAL')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition-all transform hover:-translate-y-1 mt-6 text-lg">🚀 BẮT ĐẦU THI NGAY</button>
+                        <button onclick="App.doLogin('INDIVIDUAL')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 rounded-xl shadow-lg transition-transform transform hover:scale-[1.02] mt-8 text-xl">BẮT ĐẦU THI</button>
                     </div>
 
-                    <!-- Form Nhóm -->
-                    <div id="form-group" class="space-y-5 hidden animate-[fadeIn_0.3s]">
+                    <!-- Nhóm -->
+                    <div id="form-group" class="space-y-6 hidden animate-[fadeIn_0.3s_ease-out]">
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Chọn Tổ/Nhóm</label>
-                            <select id="inp-group-num" class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 outline-none transition-all font-bold text-lg text-gray-700 cursor-pointer">
-                                ${Array.from({length: 12}, (_,i) => `<option value="Nhóm ${i+1}">Đội thi số ${i+1}</option>`).join('')}
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Chọn Nhóm</label>
+                            <select id="inp-group-num" class="w-full border-2 border-gray-200 rounded-xl p-4 text-lg font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm bg-white cursor-pointer">
+                                ${Array.from({length: 12}, (_,i) => `<option value="Nhóm ${i+1}">Nhóm ${i+1}</option>`).join('')}
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Tên các thành viên (cách nhau dấu phẩy)</label>
-                            <input type="text" id="inp-group-names" class="w-full border-2 border-gray-200 rounded-xl p-4 focus:border-orange-500 focus:ring-4 focus:ring-orange-50 outline-none transition-all font-medium text-lg" placeholder="VD: An, Bình, Châu...">
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tên các thành viên (cách bằng dấu phẩy)</label>
+                            <input type="text" id="inp-group-names" class="w-full border-2 border-gray-200 rounded-xl p-4 text-lg font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm" placeholder="A, B, C">
                         </div>
-                        <button onclick="App.doLogin('GROUP')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition-all transform hover:-translate-y-1 mt-6 text-lg">🚀 NHÓM BẮT ĐẦU THI</button>
+                        <button onclick="App.doLogin('GROUP')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 rounded-xl shadow-lg transition-transform transform hover:scale-[1.02] mt-8 text-xl">BẮT ĐẦU THI</button>
                     </div>
                 </div>
             </div>
@@ -474,24 +460,23 @@
     `;
 
     const renderStickyNav = () => {
-        let navHtml = `<div class="sticky-nav px-6 py-4 flex items-center justify-between shadow-md overflow-x-auto gap-4">`;
-        navHtml += `<div class="flex items-center gap-2">`;
-        navHtml += `<span class="font-black text-gray-400 text-xs tracking-widest uppercase mr-2 hidden sm:block">Danh sách<br/>Câu hỏi</span>`;
+        let navHtml = `<div class="sticky-nav px-4 py-3 flex items-center justify-between shadow-sm overflow-x-auto gap-2">`;
+        navHtml += `<div class="flex items-center gap-1 font-mono">`;
+        navHtml += `<span class="text-xs font-bold text-gray-400 mr-2 uppercase tracking-widest hidden sm:inline-block">Câu hỏi:</span>`;
         AppState.questions.forEach(q => {
             const hasAns = AppState.answers[q.displayId] !== undefined;
             const bgClass = hasAns ? 'answered' : 'unanswered';
-            navHtml += `<a href="#q-${q.displayId}" class="nav-btn ${bgClass} shadow-sm text-sm" onclick="App.highlightNav(${q.displayId})">${q.displayId}</a>`;
+            const activeClass = AppState.currentActiveQId === q.displayId ? 'active' : '';
+            navHtml += `<a href="#q-${q.displayId}" onclick="App.setCurrentQ(${q.displayId})" class="nav-btn text-sm ${bgClass} ${activeClass}">${q.displayId}</a>`;
         });
         navHtml += `</div>`;
         if (AppState.status === 'QUIZ') {
-            navHtml += `<div class="flex items-center gap-4 min-w-max ml-auto">
-                <div class="text-2xl font-mono font-black text-red-600 bg-red-50 border-2 border-red-200 px-4 py-2 rounded-xl shadow-inner flex items-center gap-2">
-                    <span class="text-xl">⏱</span> <span id="ui-timer">10:00</span>
-                </div>
-                <button onclick="App.askSubmit()" class="bg-gray-800 text-white px-6 py-3 rounded-xl font-black hover:bg-gray-900 transition-colors shadow-lg border-b-4 border-gray-950 active:translate-y-1 active:border-b-0">NỘP BÀI</button>
+            navHtml += `<div class="flex items-center gap-4 min-w-max ml-auto pl-4">
+                <div class="text-xl font-mono font-bold text-red-600 bg-red-100 px-3 py-1 rounded border border-red-200" id="ui-timer">10:00</div>
+                <button onclick="App.askSubmit()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition-colors">NỘP BÀI</button>
             </div>`;
         } else {
-            navHtml += `<button onclick="App.goHome()" class="bg-gray-800 text-white px-6 py-3 rounded-xl font-black hover:bg-gray-900 transition-colors shadow-lg ml-auto min-w-max">Thoát ra ngoài</button>`;
+            navHtml += `<button onclick="App.goHome()" class="bg-gray-800 text-white px-5 py-2 rounded-lg font-bold hover:bg-gray-900 min-w-max ml-auto shadow-md transition-colors">VỀ TRANG CHỦ</button>`;
         }
         navHtml += `</div>`;
         return navHtml;
@@ -503,149 +488,163 @@
             const m = Math.floor(AppState.timeLeft / 60).toString().padStart(2, '0');
             const s = (AppState.timeLeft % 60).toString().padStart(2, '0');
             el.innerText = `${m}:${s}`;
-            if(AppState.timeLeft <= 60) el.parentElement.classList.add('animate-pulse', 'bg-red-100');
+            if(AppState.timeLeft <= 60) {
+                el.classList.add('animate-pulse', 'bg-red-200', 'text-red-700');
+            }
         }
     };
 
     const renderQuestionsList = () => {
         const isRes = AppState.status === 'RESULT';
-        return `<div class="max-w-5xl mx-auto py-10 px-4 space-y-10">` + 
-            AppState.questions.map((q, qIndex) => {
-                let html = `<div id="q-${q.displayId}" class="bg-white rounded-3xl shadow-lg p-8 border border-gray-100 relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-orange-400 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="flex flex-col md:flex-row md:items-start gap-4 mb-6 border-b border-gray-100 pb-4">
-                        <div class="flex-shrink-0 bg-orange-100 text-orange-700 font-black px-4 py-2 rounded-xl border border-orange-200 text-lg shadow-sm w-max">
-                            CÂU ${q.displayId}
-                        </div>
-                        <h3 class="text-xl font-semibold text-gray-800 leading-relaxed">${q.text}</h3>
+        return `<div class="max-w-4xl mx-auto py-8 px-4 space-y-8">` + 
+            AppState.questions.map(q => {
+                let html = `<div id="q-${q.displayId}" class="bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-200 scroll-mt-24 transition-all duration-300 ${AppState.currentActiveQId === q.displayId ? 'ring-2 ring-blue-400 shadow-xl scale-[1.01]' : ''}" onclick="App.setCurrentQ(${q.displayId})">
+                    <div class="flex items-start justify-between mb-6 border-b border-gray-100 pb-4">
+                        <h3 class="text-xl font-bold text-gray-800 leading-relaxed"><span class="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm mr-3 font-black shadow-sm">CÂU ${q.displayId}</span> ${q.text}</h3>
                     </div>
                     <div class="space-y-4">`;
                 
-                // --- RENDER DẠNG CÂU HỎI ---
+                // RENDER INPUT THEO DẠNG
                 if (q.type === 'MC') {
-                    html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
                     q.options.forEach((opt, i) => {
                         const checked = AppState.answers[q.displayId] === i ? 'checked' : '';
                         const disabled = isRes ? 'disabled' : '';
-                        // Fix for the template literal error: ensure opt is properly handled if it contains quotes
-                        const safeOpt = opt.replace(/"/g, '&quot;');
-                        html += `<label class="flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all duration-200 ${checked ? 'bg-orange-50 border-orange-400 shadow-sm' : 'hover:bg-gray-50 border-gray-200'}">
-                            <input type="radio" name="q${q.displayId}" value="${i}" ${checked} ${disabled} onchange="App.saveAns(${q.displayId}, ${i})" class="w-6 h-6 text-orange-500 border-gray-300 focus:ring-orange-500">
-                            <span class="ml-4 font-medium text-lg text-gray-700">${safeOpt}</span>
+                        html += `<label class="flex items-center p-4 border-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-500' : 'border-gray-200'}">
+                            <input type="radio" name="q${q.displayId}" value="${i}" ${checked} ${disabled} onchange="App.saveAns(${q.displayId}, ${i})" class="w-6 h-6 text-blue-600 accent-blue-600">
+                            <span class="ml-4 text-gray-700 text-lg font-medium">${opt}</span>
                         </label>`;
                     });
-                    html += `</div>`;
                 } 
                 else if (q.type === 'TF_CLUSTER') {
                     const ansData = AppState.answers[q.displayId] || {};
-                    html += `<div class="overflow-x-auto rounded-2xl border-2 border-gray-200 shadow-sm">
-                        <table class="w-full text-left border-collapse min-w-[500px]">
-                            <thead><tr class="bg-gray-50 border-b-2 border-gray-200"><th class="p-4 font-bold text-gray-600 uppercase text-sm tracking-wider">Phát biểu phân tích</th><th class="p-4 font-black text-green-600 text-center w-28 bg-green-50 border-l border-white">ĐÚNG</th><th class="p-4 font-black text-red-600 text-center w-28 bg-red-50 border-l border-white">SAI</th></tr></thead>
-                            <tbody>`;
+                    html += `<div class="overflow-x-auto"><table class="w-full text-left border-collapse border-2 border-gray-200 rounded-xl overflow-hidden hidden md:table">
+                        <thead><tr class="bg-gray-100 border-b-2 border-gray-200"><th class="p-4 font-bold text-gray-600">Phát biểu</th><th class="p-4 text-center w-28 border-l-2 font-bold text-green-600">ĐÚNG</th><th class="p-4 text-center w-28 border-l-2 font-bold text-red-600">SAI</th></tr></thead>
+                        <tbody>`;
                     q.statements.forEach((stmt, i) => {
                         const selT = ansData[i] === true ? 'checked' : '';
                         const selF = ansData[i] === false ? 'checked' : '';
                         const disabled = isRes ? 'disabled' : '';
-                        html += `<tr class="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                            <td class="p-5 font-medium text-gray-800 leading-relaxed"><span class="font-bold text-orange-500 mr-2">${['A','B','C','D'][i]}.</span> ${stmt.text}</td>
-                            <td class="p-4 text-center bg-green-50/30 border-l border-gray-100"><input type="radio" name="q${q.displayId}_${i}" value="T" ${selT} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:true})" class="w-6 h-6 accent-green-600 cursor-pointer"></td>
-                            <td class="p-4 text-center bg-red-50/30 border-l border-gray-100"><input type="radio" name="q${q.displayId}_${i}" value="F" ${selF} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:false})" class="w-6 h-6 accent-red-600 cursor-pointer"></td>
+                        html += `<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
+                            <td class="p-4 text-lg font-medium text-gray-700"><span class="font-black text-gray-400 mr-2">${['A','B','C','D'][i]}.</span> ${stmt.text}</td>
+                            <td class="p-4 text-center border-l-2 bg-green-50/50"><input type="radio" name="q${q.displayId}_${i}" value="T" ${selT} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:true})" class="w-6 h-6 accent-green-600 cursor-pointer"></td>
+                            <td class="p-4 text-center border-l-2 bg-red-50/50"><input type="radio" name="q${q.displayId}_${i}" value="F" ${selF} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:false})" class="w-6 h-6 accent-red-600 cursor-pointer"></td>
                         </tr>`;
                     });
-                    html += `</tbody></table></div>`;
+                    html += `</tbody></table>
+                    
+                    <div class="md:hidden space-y-4">`;
+                    // Mobile view for TF
+                    q.statements.forEach((stmt, i) => {
+                        const selT = ansData[i] === true ? 'checked' : '';
+                        const selF = ansData[i] === false ? 'checked' : '';
+                        const disabled = isRes ? 'disabled' : '';
+                        html += `<div class="p-4 border-2 border-gray-200 rounded-xl bg-gray-50">
+                            <p class="font-medium text-gray-800 mb-3"><span class="font-black text-gray-400 mr-1">${['A','B','C','D'][i]}.</span> ${stmt.text}</p>
+                            <div class="flex gap-4">
+                                <label class="flex-1 flex items-center justify-center p-3 border-2 rounded-lg ${selT ? 'bg-green-100 border-green-500 text-green-700 font-bold' : 'bg-white border-gray-300 text-gray-500'} cursor-pointer">
+                                    <input type="radio" name="mq${q.displayId}_${i}" value="T" ${selT} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:true})" class="hidden">
+                                    ĐÚNG
+                                </label>
+                                <label class="flex-1 flex items-center justify-center p-3 border-2 rounded-lg ${selF ? 'bg-red-100 border-red-500 text-red-700 font-bold' : 'bg-white border-gray-300 text-gray-500'} cursor-pointer">
+                                    <input type="radio" name="mq${q.displayId}_${i}" value="F" ${selF} ${disabled} onchange="App.saveAns(${q.displayId}, {idx:${i}, val:false})" class="hidden">
+                                    SAI
+                                </label>
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div></div>`;
                 }
                 else if (q.type === 'SHORT_ANS') {
                     const val = AppState.answers[q.displayId] || '';
                     const disabled = isRes ? 'disabled' : '';
-                    html += `<div class="bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 flex flex-col sm:flex-row items-center gap-6 shadow-inner">
-                        <span class="font-black text-gray-500 text-lg uppercase tracking-wider">Nhập kết quả:</span>
-                        <input type="text" ${disabled} value="${val}" onchange="App.saveAns(${q.displayId}, this.value)" placeholder="VD: 5 hoặc 5.5..." class="flex-1 w-full border-b-4 border-gray-300 p-4 rounded-t-xl bg-white focus:border-orange-500 focus:bg-orange-50 outline-none text-2xl font-black text-center text-orange-600 transition-colors shadow-sm">
+                    html += `<div class="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-6 rounded-xl border-2 border-gray-200">
+                        <span class="font-black text-gray-500 uppercase tracking-widest">ĐÁP ÁN CỦA BẠN:</span>
+                        <input type="text" ${disabled} value="${val}" onchange="App.saveAns(${q.displayId}, this.value)" placeholder="Nhập số..." class="w-full sm:w-64 border-2 border-gray-300 p-4 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-black text-blue-700 text-center text-2xl shadow-inner transition-all">
                     </div>`;
                 }
                 else if (q.type === 'MATCH') {
                     const ms = AppState.matchPairsState[q.displayId];
-                    html += `<div class="flex flex-col md:flex-row gap-6">
-                        <div class="flex-1 space-y-3">
+                    html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3 relative">
+                            <div class="absolute inset-0 border-r-2 border-dashed border-gray-200 right-[-13px] hidden md:block"></div>
                             ${q.lefts.map(l => {
                                 let stateCls = ms.selectedLeft === l.id ? 'selected' : '';
                                 let pair = ms.pairs.find(p => p.left === l.id);
-                                let numLabel = pair ? `<span class="bg-emerald-500 shadow-md text-white rounded-full w-7 h-7 inline-flex items-center justify-center mr-3 font-bold text-sm border-2 border-white">${ms.pairs.indexOf(pair)+1}</span>` : `<span class="w-7 h-7 inline-flex items-center justify-center mr-3 rounded-full bg-gray-100 text-gray-400 font-bold text-sm">${q.lefts.indexOf(l)+1}</span>`;
+                                let numLabel = pair ? `<span class="bg-green-500 text-white rounded-full w-8 h-8 inline-flex items-center justify-center mr-3 text-sm font-black shadow-md">${ms.pairs.indexOf(pair)+1}</span>` : `<span class="bg-gray-200 text-gray-400 rounded-full w-8 h-8 inline-flex items-center justify-center mr-3 text-sm font-black border border-gray-300">${q.lefts.indexOf(l)+1}</span>`;
                                 if(pair) stateCls = 'paired';
-                                // Fix string escape issue in onclick
-                                return `<div onclick="${isRes ? '' : `App.clickMatchLeft(${q.displayId}, ${l.id})`}" class="match-item shadow-sm ${stateCls} flex items-center justify-start text-left">${numLabel}${l.text}</div>`;
+                                return `<div onclick="${isRes ? '' : `App.clickMatchLeft(${q.displayId}, ${l.id})`}" class="match-item shadow-sm ${stateCls} flex items-center text-lg hover:border-blue-300">${numLabel}${l.text}</div>`;
                             }).join('')}
                         </div>
-                        <div class="flex flex-row md:flex-col justify-center items-center gap-2 opacity-30 pointer-events-none">
-                            <span class="text-3xl">🔗</span>
-                        </div>
-                        <div class="flex-1 space-y-3">
+                        <div class="space-y-3">
                             ${q.rights.map(r => {
                                 let stateCls = ms.selectedRight === r.id ? 'selected' : '';
                                 let pair = ms.pairs.find(p => p.right === r.id);
-                                let numLabel = pair ? `<span class="bg-emerald-500 shadow-md text-white rounded-full w-7 h-7 inline-flex items-center justify-center mr-3 font-bold text-sm border-2 border-white">${ms.pairs.indexOf(pair)+1}</span>` : `<span class="w-7 h-7 inline-flex items-center justify-center mr-3 rounded-full bg-gray-100 text-gray-400 font-bold text-sm uppercase">${String.fromCharCode(65+q.rights.indexOf(r))}</span>`;
+                                let numLabel = pair ? `<span class="bg-green-500 text-white rounded-full w-8 h-8 inline-flex items-center justify-center mr-3 text-sm font-black shadow-md">${ms.pairs.indexOf(pair)+1}</span>` : `<span class="bg-gray-200 text-gray-400 rounded-full w-8 h-8 inline-flex items-center justify-center mr-3 text-sm font-black border border-gray-300 uppercase">${String.fromCharCode(65+q.rights.indexOf(r))}</span>`;
                                 if(pair) stateCls = 'paired';
-                                // Fix string escape issue in onclick
-                                return `<div onclick="${isRes ? '' : `App.clickMatchRight(${q.displayId}, ${r.id})`}" class="match-item shadow-sm ${stateCls} flex items-center justify-start text-left">${numLabel}${r.text}</div>`;
+                                return `<div onclick="${isRes ? '' : `App.clickMatchRight(${q.displayId}, ${r.id})`}" class="match-item shadow-sm ${stateCls} flex items-center text-lg hover:border-blue-300">${numLabel}${r.text}</div>`;
                             }).join('')}
                         </div>
                     </div>
-                    ${!isRes ? `<div class="text-right mt-4"><button onclick="App.clearMatch(${q.displayId})" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors border border-red-200">⟲ Hủy nối ghép làm lại</button></div>` : ''}`;
+                    ${!isRes ? `<div class="mt-6 text-center"><button onclick="App.clearMatch(${q.displayId})" class="text-sm text-red-600 hover:text-red-700 font-bold px-4 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 shadow-sm">⟲ Hủy nối, làm lại câu này</button></div>` : ''}`;
                 }
                 else if (q.type === 'FILL_BLANK') {
                     let text = q.text;
                     const st = AppState.fillBlankState[q.displayId];
                     Object.keys(q.correct).forEach(k => {
                         const filledVal = st.blanks[k];
-                        const cls = filledVal ? 'filled' : '';
-                        // Fix template string and string escaping for clickBlank
-                        const blankHtml = `<span class="blank-slot shadow-sm ${cls}" onclick="${isRes ? '' : `App.clickBlank(${q.displayId}, '${k}')`}">${filledVal || '&nbsp;&nbsp;?&nbsp;&nbsp;'}</span>`;
+                        const cls = filledVal ? 'bg-blue-100 border-blue-500 text-blue-800 shadow-inner' : 'bg-white border-dashed border-gray-400 text-gray-400';
+                        const blankHtml = `<span class="blank-slot text-base font-bold shadow-sm ${cls}" onclick="${isRes ? '' : `App.clickBlank(${q.displayId}, '${k}')`}">${filledVal || '?'}</span>`;
                         text = text.replace(`[${k}]`, blankHtml);
                     });
-                    html += `<div class="text-xl leading-[2.5] bg-gray-50 p-8 rounded-2xl mb-6 border-2 border-gray-200 text-gray-800 shadow-inner">${text}</div>`;
+                    html += `<div class="text-xl leading-loose bg-gray-50 p-6 md:p-8 rounded-xl mb-6 border-2 border-gray-200 text-gray-800 font-medium">${text}</div>`;
                     
                     if (!isRes) {
-                        html += `<div class="mt-4 bg-white p-6 border-2 border-dashed border-gray-300 rounded-2xl">
-                            <p class="text-sm font-black text-gray-400 tracking-widest uppercase mb-4 text-center">Danh sách từ gợi ý (Chạm để chọn)</p>
+                        html += `<div class="mt-6 pt-6 border-t-2 border-dashed border-gray-200">
+                            <p class="text-sm font-black text-gray-400 mb-4 tracking-widest uppercase text-center">Danh sách từ gợi ý (Chạm để chọn trước)</p>
                             <div class="flex flex-wrap justify-center gap-3">`;
                         q.words.forEach(w => {
                             const isUsed = Object.values(st.blanks).includes(w);
                             const isSel = st.selectedWord === w;
-                            let cls = 'word-chip text-lg ';
-                            if(isUsed) cls += 'used ';
-                            else if(isSel) cls += 'selected ';
-                            // Fix string escaping for clickWord
-                            html += `<div class="${cls}" onclick="App.clickWord(${q.displayId}, '${w.replace(/'/g, "\\'")}')">${w}</div>`;
+                            let cls = 'word-chip text-lg px-5 py-2 border-2 ';
+                            if(isUsed) cls += 'used bg-gray-100 text-gray-400 border-gray-200 shadow-none ';
+                            else if(isSel) cls += 'selected bg-blue-600 text-white border-blue-700 shadow-md scale-110 ';
+                            else cls += 'bg-white text-gray-700 border-gray-300 shadow-sm hover:border-blue-400 hover:text-blue-600 ';
+                            const escapedW = w.replace(/'/g, "\\'");
+                            html += `<div class="${cls}" onclick="App.clickWord(${q.displayId}, '${escapedW}')">${w}</div>`;
                         });
                         html += `</div></div>`;
                     }
                 }
 
-                html += `</div>`; // End space-y-4
+                html += `</div>`; // end space-y-3
 
-                // --- HIỂN THỊ KẾT QUẢ KHI RESULT ---
+                // HIỂN THỊ KẾT QUẢ KHI RESULT
                 if (isRes) {
                     const rs = getScoreForQuestion(q);
                     const isFull = rs.score === rs.max;
                     const isZero = rs.score === 0;
-                    const badge = isFull ? `<span class="text-green-600 font-black text-xl flex items-center gap-2"><span class="bg-green-100 p-1 rounded-md">✅</span> CHÍNH XÁC (+${rs.score}đ)</span>` : 
-                                 (isZero ? `<span class="text-red-600 font-black text-xl flex items-center gap-2"><span class="bg-red-100 p-1 rounded-md">❌</span> SAI (0đ)</span>` : 
-                                 `<span class="text-yellow-600 font-black text-xl flex items-center gap-2"><span class="bg-yellow-100 p-1 rounded-md">⚠️</span> ĐÚNG MỘT PHẦN (+${rs.score}đ)</span>`);
+                    const badge = isFull ? `<span class="text-green-700 bg-green-100 px-4 py-1.5 rounded-full font-black flex items-center shadow-sm text-sm border border-green-300">✅ CHÍNH XÁC (+${rs.score}đ)</span>` : 
+                                 (isZero ? `<span class="text-red-700 bg-red-100 px-4 py-1.5 rounded-full font-black flex items-center shadow-sm text-sm border border-red-300">❌ CHƯA ĐÚNG (0đ)</span>` : 
+                                 `<span class="text-yellow-700 bg-yellow-100 px-4 py-1.5 rounded-full font-black flex items-center shadow-sm text-sm border border-yellow-300">⚠️ ĐÚNG MỘT PHẦN (+${rs.score}đ)</span>`);
                     
-                    html += `<div class="mt-8 p-6 rounded-2xl bg-gray-50 border-2 ${isFull?'border-green-400 shadow-[0_0_15px_rgba(74,222,128,0.2)]':'border-red-300'} relative">
-                        <div class="absolute -top-4 left-6 bg-white px-2">${badge}</div>
-                        <div class="text-gray-700 text-lg leading-relaxed mt-2"><span class="font-black text-gray-500 uppercase tracking-widest text-sm block mb-2 border-b pb-2">Giải thích theo SGK:</span> ${q.explain}</div>
+                    html += `<div class="mt-8 p-6 rounded-xl bg-gray-50 border-2 ${isFull?'border-green-400':'border-red-400'} shadow-sm relative animate-[fadeIn_0.5s_ease-out]">
+                        <div class="absolute -top-4 left-6 bg-white">${badge}</div>
+                        <div class="text-gray-800 text-lg leading-relaxed mt-2 font-medium"><span class="font-black text-gray-500 uppercase text-xs tracking-wider block mb-2 border-b pb-1">Giải thích chi tiết (Theo SGK):</span> ${q.explain}</div>
                     </div>`;
                 }
 
-                html += `</div>`; // End card q
+                html += `</div>`; // end card
                 return html;
             }).join('') + `</div>`;
     };
 
     const renderQuiz = () => `
-        <div class="bg-gray-100 min-h-screen pb-20">
+        <div class="bg-gray-100 min-h-screen pb-24">
             ${renderStickyNav()}
             ${renderQuestionsList()}
+            <div class="max-w-4xl mx-auto px-4 mt-10 pb-12 flex justify-center">
+                <button onclick="App.askSubmit()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-14 py-5 rounded-2xl font-black text-2xl shadow-xl transform transition-transform hover:scale-105 border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0">NỘP BÀI & XEM ĐIỂM</button>
+            </div>
         </div>
     `;
 
@@ -655,10 +654,10 @@
         
         let msg = "Cần cố gắng học kỹ lý thuyết hơn nhé!";
         if (totalScore >= 20) {
-            msg = "XUẤT SẮC! BẠN ĐÃ NẮM RẤT VỮNG BÀI 2!";
-            setTimeout(() => { confetti({particleCount: 200, spread: 100, origin: {y: 0.6}}); playSound(true); }, 500);
+            msg = "Xuất sắc! Bạn nắm bài rất vững!";
+            setTimeout(() => { confetti({particleCount: 200, spread: 90, origin: {y: 0.6}}); playSound(true); }, 500);
         } else if (totalScore >= 12.5) {
-            msg = "KHÁ TỐT! HÃY CHÚ Ý NHỮNG CÂU SAI ĐỂ RÚT KINH NGHIỆM.";
+            msg = "Làm tốt lắm, nhưng hãy chú ý vài câu sai nhé.";
         } else {
             playSound(false);
         }
@@ -668,129 +667,118 @@
         const s = (timeUsed % 60).toString().padStart(2, '0');
 
         return `
-            <div class="bg-gray-100 min-h-screen pb-20">
+            <div class="bg-gray-100 min-h-screen pb-24">
                 ${renderStickyNav()}
-                <div class="max-w-4xl mx-auto pt-10 px-4">
-                    <div class="bg-white rounded-3xl shadow-2xl p-10 text-center border-t-[10px] relative overflow-hidden ${totalScore >= 20 ? 'border-green-500' : 'border-blue-500'}">
-                        <div class="absolute opacity-5 -top-10 -right-10 text-[200px]">🏆</div>
-                        <h2 class="text-4xl font-black mb-4 uppercase tracking-tight text-gray-800">Hoàn Thành Bài Kiểm Tra</h2>
-                        <div class="inline-block bg-gray-100 px-6 py-2 rounded-full mb-10 border border-gray-200">
-                            <p class="text-gray-600 font-medium text-lg">${AppState.user.type === 'GROUP' ? 'Nhóm thi: ' : 'Học sinh: '}<span class="font-bold text-blue-700 ml-2 text-xl">${AppState.user.name}</span></p>
+                <div class="max-w-4xl mx-auto pt-12 px-4">
+                    <div class="bg-white rounded-3xl shadow-2xl p-10 md:p-14 text-center border-t-8 ${totalScore >= 20 ? 'border-green-500' : 'border-blue-500'} relative overflow-hidden animate-[fadeIn_0.5s_ease-out]">
+                        <div class="absolute -top-10 -right-10 text-9xl opacity-5 pointer-events-none">🏆</div>
+                        <h2 class="text-4xl font-black text-gray-800 mb-4 uppercase tracking-wide">KẾT QUẢ BÀI THI</h2>
+                        <div class="inline-block bg-gray-100 px-8 py-3 rounded-full mb-10 border-2 border-gray-200">
+                            <p class="text-gray-600 font-bold text-lg">${AppState.user.type === 'GROUP' ? 'Nhóm thi: ' : 'Học sinh: '}<span class="font-black text-blue-700 text-xl ml-2">${AppState.user.name}</span></p>
                         </div>
                         
                         <div class="flex flex-col sm:flex-row justify-center gap-8 mb-10 relative z-10">
-                            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-3xl border border-blue-200 shadow-sm flex-1">
-                                <div class="text-7xl font-black text-blue-600 mb-2 drop-shadow-sm">${totalScore.toFixed(2)}<span class="text-3xl text-blue-300 ml-1">/25</span></div>
+                            <div class="bg-blue-50 p-8 rounded-2xl border-2 border-blue-100 flex-1 shadow-sm transform hover:scale-105 transition-transform">
+                                <div class="text-7xl font-black text-blue-600 mb-2 drop-shadow-sm">${totalScore.toFixed(2)} <span class="text-4xl text-blue-300">/25</span></div>
                                 <div class="text-sm font-black text-blue-400 uppercase tracking-widest">Điểm Số</div>
                             </div>
-                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-8 rounded-3xl border border-gray-200 shadow-sm flex-1">
-                                <div class="text-6xl font-black text-gray-700 mb-4 mt-2 drop-shadow-sm">${m}:${s}</div>
+                            <div class="bg-gray-50 p-8 rounded-2xl border-2 border-gray-200 flex-1 shadow-sm transform hover:scale-105 transition-transform">
+                                <div class="text-6xl font-black text-gray-700 mb-4 drop-shadow-sm mt-2">${m}:${s}</div>
                                 <div class="text-sm font-black text-gray-400 uppercase tracking-widest">Thời Gian</div>
                             </div>
                         </div>
-                        <div class="inline-block bg-yellow-50 px-8 py-4 rounded-2xl border-2 border-yellow-200">
-                            <p class="text-xl font-bold text-yellow-700">${msg}</p>
+                        <div class="inline-block bg-yellow-50 px-8 py-4 rounded-xl border-2 border-yellow-200 mb-6">
+                            <p class="text-xl font-black text-yellow-700">${msg}</p>
                         </div>
-                        <p class="text-gray-400 mt-8 font-medium animate-bounce">↓ Cuộn xuống để xem đáp án chi tiết ↓</p>
+                        <p class="text-sm text-gray-400 animate-pulse mt-4 font-bold tracking-widest uppercase">↓ Cuộn xuống để xem lời giải chi tiết ↓</p>
                     </div>
                 </div>
                 ${renderQuestionsList()}
+                <div class="max-w-4xl mx-auto px-4 mt-8 pb-12 flex justify-center">
+                    <button onclick="App.goHome()" class="bg-gray-800 hover:bg-gray-900 text-white px-12 py-4 rounded-xl font-black text-xl shadow-lg transition-transform hover:scale-105">VỀ MÀN HÌNH CHÍNH</button>
+                </div>
             </div>
         `;
     };
 
-    // --- ADMIN RENDER ---
     const renderAdmin = () => {
-        // Tự động load dữ liệu mới nhất mỗi khi render Admin
+        // Tải lại dữ liệu mới nhất
         const data = JSON.parse(localStorage.getItem('khtn9_scores') || '[]');
         const groups = data.filter(d => d.type === 'GROUP').sort((a,b) => b.score - a.score || a.time - b.time);
         const indivs = data.filter(d => d.type === 'INDIVIDUAL').sort((a,b) => b.score - a.score || a.time - b.time);
-        const isAdmin = AppState.user.type === 'ADMIN_TEACHER';
+        const isAdmin = AppState.user.type === 'ADMIN_TEACHER'; 
 
         let html = `
-            <div class="min-h-screen bg-gray-50 font-sans">
-                <div class="bg-white shadow-md border-b border-gray-200 px-8 py-5 flex justify-between items-center sticky top-0 z-50">
-                    <h1 class="text-2xl font-black text-gray-800 uppercase tracking-tight flex items-center gap-3">
-                        <span class="text-3xl">${isAdmin ? '👨‍🏫' : '👨‍👩‍👧'}</span> ${isAdmin ? 'BẢNG ĐIỀU KHIỂN GIÁO VIÊN' : 'BẢNG KẾT QUẢ CHO PHỤ HUYNH'}
+            <div class="min-h-screen bg-gray-100 font-sans">
+                <div class="bg-white shadow-md border-b px-8 py-5 flex justify-between items-center sticky top-0 z-40">
+                    <h1 class="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-3">
+                        <span class="text-3xl bg-blue-100 p-2 rounded-lg">${isAdmin ? '👨‍🏫' : '👨‍👩‍👧'}</span> 
+                        ${isAdmin ? 'BẢNG QUẢN LÝ TỔNG HỢP' : 'KẾT QUẢ HỌC TẬP'}
                     </h1>
                     <div class="flex gap-4">
-                        <button onclick="App.refreshAdmin()" class="bg-blue-50 text-blue-700 border border-blue-200 px-5 py-2.5 rounded-xl font-bold hover:bg-blue-100 transition shadow-sm flex items-center gap-2"><span>🔄</span> Làm mới</button>
+                        <button onclick="App.refreshAdmin()" class="bg-blue-50 text-blue-700 px-5 py-2.5 rounded-xl font-bold hover:bg-blue-100 transition shadow-sm border border-blue-200 flex items-center gap-2"><span>🔄</span> Làm mới dữ liệu</button>
                         <button onclick="App.goHome()" class="bg-gray-800 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-900 transition shadow-sm">Đăng xuất</button>
                     </div>
                 </div>
                 <div class="max-w-7xl mx-auto p-8 flex flex-col lg:flex-row gap-8">
-                    <div class="lg:w-72 flex-shrink-0">
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-3 flex flex-col gap-2 sticky top-28">`;
+                    <div class="lg:w-80 flex-shrink-0">
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-col gap-3 sticky top-32">`;
         
         if (isAdmin) {
             html += `
-                <button onclick="App.switchAdminTab('GROUP')" class="${AppState.adminTab==='GROUP'?'bg-blue-600 text-white shadow-md':'text-gray-600 hover:bg-gray-100'} px-5 py-4 rounded-xl text-left w-full transition font-bold text-lg flex items-center gap-3"><span class="text-xl">👥</span> Thống kê Nhóm</button>
-                <button onclick="App.switchAdminTab('INDIV')" class="${AppState.adminTab==='INDIV'?'bg-blue-600 text-white shadow-md':'text-gray-600 hover:bg-gray-100'} px-5 py-4 rounded-xl text-left w-full transition font-bold text-lg flex items-center gap-3"><span class="text-xl">👤</span> Thống kê Cá nhân</button>
-                <button onclick="App.switchAdminTab('EXAM')" class="${AppState.adminTab==='EXAM'?'bg-blue-600 text-white shadow-md':'text-gray-600 hover:bg-gray-100'} px-5 py-4 rounded-xl text-left w-full transition font-bold text-lg flex items-center gap-3"><span class="text-xl">📖</span> Xem toàn bộ đề</button>
+                <button onclick="App.switchAdminTab('GROUP')" class="${AppState.adminTab==='GROUP'?'bg-blue-600 text-white shadow-lg scale-105':'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'} px-6 py-5 rounded-xl text-left w-full transition-all font-black text-lg flex items-center gap-3"><span class="text-2xl">🏆</span> Thống kê Nhóm</button>
+                <button onclick="App.switchAdminTab('INDIV')" class="${AppState.adminTab==='INDIV'?'bg-blue-600 text-white shadow-lg scale-105':'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'} px-6 py-5 rounded-xl text-left w-full transition-all font-black text-lg flex items-center gap-3"><span class="text-2xl">👤</span> Thống kê Cá nhân</button>
+                <button onclick="App.switchAdminTab('EXAM')" class="${AppState.adminTab==='EXAM'?'bg-blue-600 text-white shadow-lg scale-105':'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'} px-6 py-5 rounded-xl text-left w-full transition-all font-black text-lg flex items-center gap-3"><span class="text-2xl">📖</span> Xem toàn bộ đề</button>
             `;
         } else {
-            AppState.adminTab = 'INDIV';
-            html += `<button class="bg-blue-600 text-white shadow-md px-5 py-4 rounded-xl text-left w-full font-bold text-lg flex items-center gap-3"><span class="text-xl">👤</span> Bảng Điểm Cá Nhân</button>`;
+            AppState.adminTab = 'INDIV'; 
+            html += `<button class="bg-blue-600 text-white shadow-lg px-6 py-5 rounded-xl text-left w-full font-black text-lg flex items-center gap-3"><span class="text-2xl">👤</span> Thống kê Cá nhân</button>`;
         }
         
-        html += `</div></div><div class="flex-1 bg-white rounded-3xl shadow-sm border border-gray-200 p-8 min-h-[600px]">`;
+        html += `</div></div><div class="flex-1 bg-white rounded-3xl shadow-sm border border-gray-200 p-8 overflow-x-auto min-h-[600px] animate-[fadeIn_0.3s_ease-out]">`;
 
         // TAB NỘI DUNG
         if (AppState.adminTab === 'GROUP') {
-            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-4 inline-block">Bảng Xếp Hạng Các Nhóm</h2>`;
-            if(groups.length===0) html += `<div class="p-10 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300"><p class="text-gray-500 font-medium text-lg">Chưa có dữ liệu nộp bài.</p></div>`;
+            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-3 inline-block uppercase tracking-wide">Bảng Xếp Hạng Nhóm</h2>`;
+            if(groups.length===0) html += `<div class="p-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 font-bold text-lg">Chưa có dữ liệu nộp bài.</div>`;
             else {
-                html += `<div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm"><table class="w-full text-left border-collapse min-w-[600px]">
-                    <thead><tr class="bg-gray-50 text-gray-500 uppercase text-sm tracking-wider border-b border-gray-200"><th class="p-5 font-black w-24 text-center">Hạng</th><th class="p-5 font-black">Tên Nhóm / Thành viên</th><th class="p-5 font-black text-center">Điểm số</th><th class="p-5 font-black text-right">Thời gian</th></tr></thead>
+                html += `<table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead><tr class="bg-gray-50 text-gray-500 uppercase text-sm tracking-wider border-b-2 border-gray-200"><th class="p-5 w-24 text-center">Hạng</th><th class="p-5 font-black">Tên Nhóm / Thành viên</th><th class="p-5 font-black text-center">Điểm</th><th class="p-5 font-black text-right">Thời gian</th><th class="p-5 font-black text-right">Lúc</th></tr></thead>
                     <tbody>${groups.map((g,i) => `
-                        <tr class="border-b border-gray-100 hover:bg-blue-50/50 transition-colors">
-                            <td class="p-5 text-center"><span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-black text-lg ${i===0?'bg-yellow-100 text-yellow-600 border border-yellow-300':(i===1?'bg-gray-100 text-gray-500 border border-gray-300':(i===2?'bg-orange-100 text-orange-600 border border-orange-300':'text-gray-400'))}">${i+1}</span></td>
-                            <td class="p-5"><div class="font-black text-gray-800 text-lg mb-1">${g.id}</div><div class="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md inline-block">${g.name}</div></td>
-                            <td class="p-5 font-black text-2xl text-blue-600 text-center">${g.score.toFixed(2)}</td>
-                            <td class="p-5 text-gray-500 font-mono font-bold text-right text-lg">${Math.floor(g.time/60)}m ${g.time%60}s</td>
-                        </tr>`).join('')}</tbody></table></div>`;
+                        <tr class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                            <td class="p-5 text-center"><span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-black text-lg shadow-sm ${i===0?'bg-yellow-100 text-yellow-600 border border-yellow-300':(i===1?'bg-gray-100 text-gray-500 border border-gray-300':(i===2?'bg-orange-100 text-orange-600 border border-orange-300':'text-gray-400 bg-gray-50'))}">#${i+1}</span></td>
+                            <td class="p-5"><div class="font-black text-gray-800 text-xl">${g.id}</div><div class="text-sm font-medium text-gray-500 bg-white border px-3 py-1 rounded-md inline-block mt-2 shadow-sm">${g.name}</div></td>
+                            <td class="p-5 font-black text-3xl text-blue-600 text-center">${g.score.toFixed(2)}</td>
+                            <td class="p-5 text-gray-600 font-mono font-bold text-right text-lg">${Math.floor(g.time/60)}m ${g.time%60}s</td>
+                            <td class="p-5 text-gray-400 font-medium text-right text-sm">${new Date(g.date).toLocaleTimeString('vi-VN')}</td>
+                        </tr>`).join('')}</tbody></table>`;
             }
         } 
         else if (AppState.adminTab === 'INDIV') {
-            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-4 inline-block">Kết Quả Thi Cá Nhân</h2>`;
-            if(indivs.length===0) html += `<div class="p-10 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300"><p class="text-gray-500 font-medium text-lg">Chưa có dữ liệu nộp bài.</p></div>`;
+            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-3 inline-block uppercase tracking-wide">Kết Quả Cá Nhân</h2>`;
+            if(indivs.length===0) html += `<div class="p-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 font-bold text-lg">Chưa có dữ liệu nộp bài.</div>`;
             else {
-                html += `<div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm"><table class="w-full text-left border-collapse min-w-[600px]">
-                    <thead><tr class="bg-gray-50 text-gray-500 uppercase text-sm tracking-wider border-b border-gray-200"><th class="p-5 font-black w-24 text-center">Hạng</th><th class="p-5 font-black">Họ Tên Học Sinh</th><th class="p-5 font-black text-center">Điểm số</th><th class="p-5 font-black text-right">Thời gian</th></tr></thead>
+                html += `<table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead><tr class="bg-gray-50 text-gray-500 uppercase text-sm tracking-wider border-b-2 border-gray-200"><th class="p-5 w-24 text-center">Hạng</th><th class="p-5 font-black">Họ Tên Học Sinh</th><th class="p-5 font-black text-center">Điểm</th><th class="p-5 font-black text-right">Thời gian</th><th class="p-5 font-black text-right">Lúc</th></tr></thead>
                     <tbody>${indivs.map((g,i) => `
-                        <tr class="border-b border-gray-100 hover:bg-blue-50/50 transition-colors">
-                            <td class="p-5 text-center"><span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-black text-lg ${i===0?'bg-yellow-100 text-yellow-600 border border-yellow-300':(i===1?'bg-gray-100 text-gray-500 border border-gray-300':(i===2?'bg-orange-100 text-orange-600 border border-orange-300':'text-gray-400'))}">${i+1}</span></td>
-                            <td class="p-5 font-black text-gray-800 text-lg">${g.name}</td>
-                            <td class="p-5 font-black text-2xl text-blue-600 text-center">${g.score.toFixed(2)}</td>
-                            <td class="p-5 text-gray-500 font-mono font-bold text-right text-lg">${Math.floor(g.time/60)}m ${g.time%60}s</td>
-                        </tr>`).join('')}</tbody></table></div>`;
+                        <tr class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                            <td class="p-5 text-center"><span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-black text-lg shadow-sm ${i===0?'bg-yellow-100 text-yellow-600 border border-yellow-300':(i===1?'bg-gray-100 text-gray-500 border border-gray-300':(i===2?'bg-orange-100 text-orange-600 border border-orange-300':'text-gray-400 bg-gray-50'))}">#${i+1}</span></td>
+                            <td class="p-5 font-black text-gray-800 text-xl">${g.name}</td>
+                            <td class="p-5 font-black text-3xl text-blue-600 text-center">${g.score.toFixed(2)}</td>
+                            <td class="p-5 text-gray-600 font-mono font-bold text-right text-lg">${Math.floor(g.time/60)}m ${g.time%60}s</td>
+                            <td class="p-5 text-gray-400 font-medium text-right text-sm">${new Date(g.date).toLocaleTimeString('vi-VN')}</td>
+                        </tr>`).join('')}</tbody></table>`;
             }
         }
         else if (AppState.adminTab === 'EXAM') {
-            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-4 inline-block">Nội Dung Bộ Đề Thi KHTN 9 - Bài 2</h2>
+            html += `<h2 class="text-3xl font-black mb-8 text-gray-800 border-b-4 border-blue-500 pb-3 inline-block uppercase tracking-wide">Chi Tiết 25 Câu Hỏi</h2>
                 <div class="space-y-8">`;
             rawQuestions.forEach((q, idx) => {
-                html += `<div class="p-8 border-2 border-gray-200 rounded-3xl bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <div class="font-semibold text-xl mb-4 text-gray-800 leading-relaxed"><span class="bg-gray-800 text-white px-3 py-1 rounded-lg mr-2 font-black">Câu ${idx+1}</span> ${q.text}</div>`;
-                
-                if(q.type === 'MC') {
-                    html += `<div class="text-gray-500 font-medium mb-3 p-4 bg-gray-50 rounded-xl">Các phương án: <br/>${q.options.map((o,i)=> `<span class="inline-block bg-white border px-2 py-1 m-1 rounded">${['A','B','C','D'][i]}. ${o}</span>`).join('')}</div>
-                    <div class="text-green-600 font-black text-lg mb-4 flex items-center gap-2"><span>🎯</span> ĐÁP ÁN: ${q.options[q.correct]}</div>`;
-                }
-                else if(q.type === 'TF_CLUSTER') {
-                    html += `<div class="text-gray-500 font-medium mb-3 p-4 bg-gray-50 rounded-xl"><ul class="list-disc ml-5 space-y-1">${q.statements.map(s => `<li>${s.text} <strong class="${s.correct?'text-green-600':'text-red-500'}">(${s.correct?'ĐÚNG':'SAI'})</strong></li>`).join('')}</ul></div>`;
-                }
-                else if(q.type === 'SHORT_ANS') {
-                    html += `<div class="text-green-600 font-black text-lg mb-4 flex items-center gap-2"><span>🎯</span> ĐÁP ÁN ĐIỀN SỐ: ${q.correct}</div>`;
-                }
-                else if(q.type === 'MATCH') {
-                    html += `<div class="text-green-600 font-black text-lg mb-4"><span>🎯</span> GHÉP ĐÚNG: <ul class="list-disc ml-8 mt-2 space-y-2 text-gray-700 font-medium text-base">${q.pairs.map(p => `<li><span class="font-bold text-gray-900">${p.left}</span> &nbsp;➔&nbsp; <span class="text-blue-700">${p.right}</span></li>`).join('')}</ul></div>`;
-                }
-                else if(q.type === 'FILL_BLANK') {
-                    html += `<div class="text-green-600 font-black text-lg mb-4"><span>🎯</span> CẦN ĐIỀN: <ul class="list-disc ml-8 mt-2 space-y-1 text-gray-700 font-medium text-base">${Object.keys(q.correct).map(k=> `<li>Chỗ trống [${k}] điền: <span class="text-blue-700 font-bold bg-blue-50 px-2 py-1 rounded">${q.correct[k]}</span></li>`).join('')}</ul></div>`;
-                }
-
-                html += `<div class="text-gray-700 font-medium border-t-2 border-dashed border-gray-200 pt-4 mt-4"><strong class="uppercase text-gray-400 tracking-widest text-sm block mb-1">Giải thích chi tiết:</strong> <span class="text-lg">${q.explain}</span></div></div>`;
+                html += `<div class="p-8 border-2 border-gray-200 rounded-2xl bg-gray-50 shadow-sm relative"><div class="absolute -top-4 -left-4 w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black text-lg shadow-md">${idx+1}</div><div class="font-bold text-xl mb-4 text-gray-800 pl-4 leading-relaxed">${q.text}</div>`;
+                if(q.type==='MC') html += `<div class="text-blue-700 font-black mb-4 bg-blue-100 p-4 rounded-xl border border-blue-200 inline-block">ĐÁP ÁN: ${q.options[q.correct]}</div>`;
+                else if(q.type==='SHORT_ANS') html += `<div class="text-blue-700 font-black mb-4 bg-blue-100 p-4 rounded-xl border border-blue-200 inline-block">ĐÁP ÁN CHUẨN: ${q.correct}</div>`;
+                else html += `<div class="text-blue-600 font-bold mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100 inline-block">Mời xem chi tiết trong phần giải thích</div>`;
+                html += `<div class="text-base text-gray-700 border-t-2 border-dashed pt-4 border-gray-300 mt-2"><strong class="uppercase text-sm tracking-widest text-gray-500 block mb-2">Giải thích theo SGK:</strong> <div class="font-medium">${q.explain}</div></div></div>`;
             });
             html += `</div>`;
         }
@@ -799,10 +787,6 @@
         return html;
     };
 
-
-    // ==========================================
-    // 4. SCORING & DATA LOGIC
-    // ==========================================
     const getScoreForQuestion = (q) => {
         let s = 0; let m = 1;
         const a = AppState.answers[q.displayId];
@@ -820,9 +804,10 @@
             }
         }
         
-        if (q.type === 'SHORT_ANS' && a !== undefined) {
-            let userVal = parseFloat(a.toString().replace(',', '.'));
-            if (userVal === q.correct) s = 1;
+        if (q.type === 'SHORT_ANS' && a !== undefined && a !== '') {
+            let userStr = a.toString().trim().replace(',', '.');
+            let userVal = parseFloat(userStr);
+            if (!isNaN(userVal) && userVal === q.correct) s = 1;
         }
 
         if (q.type === 'MATCH') {
@@ -845,32 +830,30 @@
                 Object.keys(q.correct).forEach(k => {
                     if (st.blanks[k] !== q.correct[k]) isAllCorrect = false;
                 });
-                if (isAllCorrect) s = 1;
+                if (isAllCorrect && Object.keys(st.blanks).length === Object.keys(q.correct).length) s = 1;
             }
         }
 
         return { score: s, max: m };
     };
 
-    const submitExam = () => {
+    const submitExam = (isTimeout = false) => {
         if(AppState.timerInt) clearInterval(AppState.timerInt);
         AppState.status = 'RESULT';
         
-        // Tính điểm tổng
         let total = 0;
         AppState.questions.forEach(q => total += getScoreForQuestion(q).score);
         
-        // Lưu LocalStorage GHI ĐÈ
         let db = JSON.parse(localStorage.getItem('khtn9_scores') || '[]');
-        const timeUsed = 600 - AppState.timeLeft;
+        const timeUsed = isTimeout ? 600 : (600 - AppState.timeLeft);
         const entry = {
-            key: `${AppState.user.type}_${AppState.user.id}`, // Chìa khóa ghi đè
+            key: `${AppState.user.type}_${AppState.user.id}`,
             type: AppState.user.type,
             id: AppState.user.id,
             name: AppState.user.name,
             score: total,
             time: timeUsed,
-            date: new Date().toLocaleString('vi-VN')
+            date: new Date().toISOString()
         };
         
         const existIdx = db.findIndex(d => d.key === entry.key);
@@ -880,12 +863,12 @@
         localStorage.setItem('khtn9_scores', JSON.stringify(db));
         App.render();
         safeMathJax();
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
 
     // ==========================================
-    // 5. GLOBAL APP EXPORTS (For HTML Events)
+    // 5. GLOBAL APP EXPORTS
     // ==========================================
     window.App = {
         render: () => {
@@ -896,10 +879,9 @@
             else if (AppState.status === 'ADMIN') appEl.innerHTML = renderAdmin();
         },
         
-        // Login Logic
         switchLoginTab: (tab) => {
-            document.getElementById('tab-indiv').className = tab === 'INDIV' ? "flex-1 py-3 text-center rounded-lg font-bold bg-white text-orange-600 shadow-sm transition-all" : "flex-1 py-3 text-center rounded-lg font-bold text-gray-500 hover:text-gray-700 transition-all";
-            document.getElementById('tab-group').className = tab === 'GROUP' ? "flex-1 py-3 text-center rounded-lg font-bold bg-white text-orange-600 shadow-sm transition-all" : "flex-1 py-3 text-center rounded-lg font-bold text-gray-500 hover:text-gray-700 transition-all";
+            document.getElementById('tab-indiv').className = tab === 'INDIV' ? "flex-1 pb-4 text-center border-b-4 font-black border-blue-600 text-blue-600 transition-all text-lg" : "flex-1 pb-4 text-center border-b-4 font-black border-transparent text-gray-400 hover:text-gray-600 transition-all text-lg";
+            document.getElementById('tab-group').className = tab === 'GROUP' ? "flex-1 pb-4 text-center border-b-4 font-black border-blue-600 text-blue-600 transition-all text-lg" : "flex-1 pb-4 text-center border-b-4 font-black border-transparent text-gray-400 hover:text-gray-600 transition-all text-lg";
             document.getElementById('form-indiv').style.display = tab === 'INDIV' ? 'block' : 'none';
             document.getElementById('form-group').style.display = tab === 'GROUP' ? 'block' : 'none';
         },
@@ -907,26 +889,25 @@
             if (type === 'INDIVIDUAL') {
                 const name = document.getElementById('inp-name').value.trim();
                 const pass = document.getElementById('inp-pass').value.trim();
-                if (!name) return MODAL.show('Thông báo', 'Vui lòng nhập Họ Tên!');
-                if (pass !== '123456') return MODAL.show('Lỗi đăng nhập', 'Mật khẩu thi không chính xác! Hãy kiểm tra lại.');
+                if (!name) return MODAL.show('Thông báo', 'Vui lòng nhập đầy đủ Họ và Tên!');
+                if (pass !== '123456') return MODAL.show('Lỗi bảo mật', 'Mật khẩu thi không chính xác! Hãy kiểm tra lại.');
                 AppState.user = { type: 'INDIVIDUAL', id: name, name: name };
             } else {
                 const grp = document.getElementById('inp-group-num').value;
                 const names = document.getElementById('inp-group-names').value.trim();
-                const arr = names.split(',').filter(x => x.trim() !== '');
-                if (arr.length < 2 || arr.length > 4) return MODAL.show('Thông báo', 'Vui lòng nhập tên từ 2 đến 4 thành viên, cách nhau bằng dấu phẩy.');
+                const count = names.split(',').filter(x => x.trim() !== '').length;
+                if (count < 2 || count > 4) return MODAL.show('Thông báo', 'Vui lòng nhập tên từ 2 đến 4 thành viên (cách nhau bằng dấu phẩy).');
                 AppState.user = { type: 'GROUP', id: grp, name: names };
             }
             initQuiz();
         },
         
-        // Admin Logic
         showAdminLogin: (role) => {
             const isTeacher = role === 'TEACHER';
             const passReq = isTeacher ? '123' : '123456';
             MODAL.show(
-                isTeacher ? 'Giáo Viên Đăng Nhập' : 'Phụ Huynh Tra Cứu',
-                'Vui lòng nhập mã pin/mật khẩu bảo mật:',
+                isTeacher ? 'Đăng Nhập Quản Lý (Giáo Viên)' : 'Đăng Nhập Quản Lý (Phụ Huynh)',
+                'Vui lòng nhập mã bảo mật:',
                 () => {
                     const pass = document.getElementById('modal-inp-pass').value;
                     if (pass === passReq) {
@@ -935,21 +916,19 @@
                         AppState.user.type = isTeacher ? 'ADMIN_TEACHER' : 'ADMIN_PARENT';
                         AppState.adminTab = isTeacher ? 'GROUP' : 'INDIV';
                         App.render();
-                        if (isTeacher) safeMathJax();
+                        safeMathJax();
                     } else {
                         document.getElementById('modal-inp-pass').classList.add('border-red-500', 'bg-red-50');
                         document.getElementById('modal-inp-pass').value = '';
-                        document.getElementById('modal-inp-pass').placeholder = 'Mật khẩu sai!';
                     }
                 },
                 true,
-                `<input type="password" id="modal-inp-pass" class="w-full border-2 p-4 rounded-xl outline-none focus:border-blue-500 font-bold tracking-widest text-center text-lg transition-colors" placeholder="***">`
+                `<input type="password" id="modal-inp-pass" class="w-full border-2 border-gray-300 p-4 rounded-xl outline-none focus:border-blue-500 text-center font-bold tracking-widest text-xl shadow-inner" placeholder="***">`
             );
         },
         switchAdminTab: (tab) => {
             AppState.adminTab = tab;
-            App.render();
-            if (tab === 'EXAM') safeMathJax();
+            App.refreshAdmin(); 
         },
         refreshAdmin: () => {
             App.render(); 
@@ -961,7 +940,12 @@
             App.render();
         },
 
-        // Interaction Logic
+        setCurrentQ: (qId) => {
+            AppState.currentActiveQId = qId;
+            App.render();
+            safeMathJax();
+        },
+
         saveAns: (qId, val) => {
             const q = AppState.questions.find(x => x.displayId === qId);
             if (q.type === 'TF_CLUSTER') {
@@ -974,32 +958,24 @@
             }
         },
         updateNav: (qId) => {
-            const navBtn = document.querySelector(`a[href="#q-${qId}"]`);
-            if(navBtn) {
-                navBtn.classList.remove('unanswered');
-                navBtn.classList.add('answered');
-            }
-        },
-        highlightNav: (qId) => {
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            const navBtn = document.querySelector(`a[href="#q-${qId}"]`);
-            if(navBtn) navBtn.classList.add('active');
+            AppState.currentActiveQId = qId;
+            App.render();
+            safeMathJax();
         },
 
-        // Match Logic
         clickMatchLeft: (qId, lId) => {
             let st = AppState.matchPairsState[qId];
             if(st.pairs.find(p => p.left === lId)) return;
             st.selectedLeft = lId;
             App.checkMatch(qId);
-            App.renderOnlyQuestion(qId);
+            App.updateNav(qId); 
         },
         clickMatchRight: (qId, rId) => {
             let st = AppState.matchPairsState[qId];
             if(st.pairs.find(p => p.right === rId)) return;
             st.selectedRight = rId;
             App.checkMatch(qId);
-            App.renderOnlyQuestion(qId);
+            App.updateNav(qId);
         },
         checkMatch: (qId) => {
             let st = AppState.matchPairsState[qId];
@@ -1007,60 +983,51 @@
                 st.pairs.push({left: st.selectedLeft, right: st.selectedRight});
                 st.selectedLeft = null;
                 st.selectedRight = null;
-                if(st.pairs.length === 4) { AppState.answers[qId] = true; App.updateNav(qId); }
+                if(st.pairs.length === 4) { AppState.answers[qId] = true; }
             }
         },
         clearMatch: (qId) => {
             AppState.matchPairsState[qId] = { selectedLeft: null, selectedRight: null, pairs: [] };
             delete AppState.answers[qId];
-            const navBtn = document.querySelector(`a[href="#q-${qId}"]`);
-            if(navBtn) { navBtn.classList.remove('answered'); navBtn.classList.add('unanswered'); }
-            App.renderOnlyQuestion(qId);
+            App.updateNav(qId);
         },
 
-        // Fill Blank Logic
         clickWord: (qId, word) => {
             AppState.fillBlankState[qId].selectedWord = word;
-            App.renderOnlyQuestion(qId);
+            App.updateNav(qId);
         },
         clickBlank: (qId, blankKey) => {
             let st = AppState.fillBlankState[qId];
             if (st.blanks[blankKey]) {
-                delete st.blanks[blankKey]; // Hủy
+                delete st.blanks[blankKey];
             } else if (st.selectedWord) {
-                st.blanks[blankKey] = st.selectedWord; // Điền
+                st.blanks[blankKey] = st.selectedWord;
                 st.selectedWord = null;
             }
             
             const q = AppState.questions.find(x => x.displayId === qId);
             if(Object.keys(st.blanks).length === Object.keys(q.correct).length) {
                 AppState.answers[qId] = true;
-                App.updateNav(qId);
             } else {
                 delete AppState.answers[qId];
-                const navBtn = document.querySelector(`a[href="#q-${qId}"]`);
-                if(navBtn) { navBtn.classList.remove('answered'); navBtn.classList.add('unanswered'); }
             }
-            App.renderOnlyQuestion(qId);
-        },
-
-        renderOnlyQuestion: (qId) => {
-            const scrollY = window.scrollY;
-            App.render();
-            App.highlightNav(qId);
-            window.scrollTo(0, scrollY);
-            safeMathJax();
+            App.updateNav(qId);
         },
 
         askSubmit: () => {
-            MODAL.show('Xác nhận Nộp Bài', 'Bạn có chắc chắn muốn nộp bài và kết thúc thời gian thi không?', () => {
+            let answeredCount = Object.keys(AppState.answers).length;
+            let totalCount = AppState.questions.length;
+            let msg = answeredCount < totalCount 
+                ? `Bạn mới làm ${answeredCount}/${totalCount} câu. Những câu chưa làm sẽ bị tính 0 điểm. Bạn có chắc chắn muốn nộp bài sớm?` 
+                : `Bạn đã hoàn thành đủ ${totalCount} câu hỏi. Xác nhận nộp bài?`;
+
+            MODAL.show('Xác Nhận Nộp Bài', msg, () => {
                 MODAL.hide();
-                submitExam();
+                submitExam(false); 
             }, true);
         }
     };
 
-    // BOOTSTRAP
     App.render();
 
 </script>
