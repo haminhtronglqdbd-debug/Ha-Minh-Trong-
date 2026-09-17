@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Tương Tác: Lăng Kính (KHTN 9) - Đa Phân Quyền</title>
+    
+    <!-- Cấu hình MathJax tối ưu (Chống lag, render SVG) -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' },
+            startup: { typeset: false }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Thư viện Âm thanh và Hiệu ứng -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/1.4.8/Tone.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; transition: all 0.2s ease; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3); }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; transition: all 0.2s ease;}
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(16, 185, 129, 0.3); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; transition: all 0.2s ease;}
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(239, 68, 68, 0.3); }
+
+        /* Hộp thả (Dropzone) và Vật kéo (Draggable) - Click to match */
+        .dropzone {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 120px; height: 40px; border: 2px dashed #94a3b8; border-radius: 8px;
+            background-color: #f1f5f9; vertical-align: middle; margin: 0 6px;
+            transition: all 0.2s; cursor: pointer; padding: 0 10px;
+        }
+        .dropzone.filled { border: 2px solid #0ea5e9; background-color: white; padding: 0; }
+        
+        .draggable {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 8px 16px; margin: 6px; background-color: #e0f2fe; border: 2px solid #0ea5e9;
+            border-radius: 8px; cursor: pointer; font-weight: 600; user-select: none;
+            transition: all 0.2s; color: #0369a1; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .draggable:hover { background-color: #bae6fd; transform: translateY(-2px); }
+        .draggable.selected-to-drop {
+            background-color: #fef3c7; border-color: #f59e0b; color: #b45309;
+            transform: scale(1.08) translateY(-4px); box-shadow: 0 8px 15px rgba(245, 158, 11, 0.3); z-index: 10;
+        }
+        
+        .draggable * { pointer-events: none; } /* CHỐNG LỖI CLICK VÀO MATHJAX */
+
+        /* UI Elements */
+        .progress-bar-container { width: 100%; background-color: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: #0ea5e9; transition: width 0.3s ease; }
+        .timer-bar { height: 6px; background-color: #ef4444; transition: width 1s linear; }
+
+        /* Modals & Screens */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6); display: none; align-items: center; justify-content: center;
+            z-index: 1000; backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e2e8f0; padding: 14px; text-align: left; }
+        th { background-color: #f8fafc; font-weight: 700; color: #334155; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+
+        /* Tabs styling cho Login */
+        .login-tab.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 700; background-color: #eff6ff;}
+        .login-tab { border-bottom-color: transparent; color: #64748b; font-weight: 600; cursor: pointer; transition: all 0.2s;}
+        .login-tab:hover:not(.active) { color: #334155; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex items-center justify-center">
+
+    <div id="app" class="w-full max-w-5xl glass-panel rounded-3xl p-6 md:p-10 relative overflow-hidden">
+        
+        <div id="login-screen" class="screen active text-center">
+            <div class="mb-6">
+                <span class="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-700 font-bold text-sm mb-3">Vật lí - KHTN 9</span>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-slate-800 mb-3 tracking-tight">Bài 7: Lăng Kính</h1>
+                <h2 class="text-lg md:text-xl font-medium text-slate-500">Hệ thống bài tập tương tác</h2>
+            </div>
+            
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-6 text-left max-w-xl mx-auto shadow-sm">
+                <p class="font-bold text-lg text-indigo-900 mb-3 flex items-center"><span class="text-2xl mr-2">📋</span> Thể lệ làm bài:</p>
+                <ul class="space-y-2 text-indigo-800 font-medium text-sm md:text-base">
+                    <li class="flex items-start"><span class="mr-2 text-indigo-500">🎯</span> 25 câu đa dạng. (1 điểm/câu).</li>
+                    <li class="flex items-start"><span class="mr-2 text-indigo-500">⏱️</span> Tối đa <b>30 giây/câu</b>. Hết thời gian tự chuyển câu.</li>
+                    <li class="flex items-start"><span class="mr-2 text-indigo-500">👥</span> <b>Nhóm:</b> Từ 2-4 HS. <b>Cá nhân:</b> Nhập mật khẩu để thi.</li>
+                </ul>
+            </div>
+
+            <div class="max-w-md mx-auto bg-white rounded-2xl border shadow-sm overflow-hidden">
+                <!-- Login Tabs -->
+                <div class="flex border-b border-slate-200">
+                    <div id="tab-login-group" onclick="switchLoginMode('group')" class="login-tab active flex-1 py-4 text-center border-b-4">Làm Bài Nhóm</div>
+                    <div id="tab-login-indiv" onclick="switchLoginMode('individual')" class="login-tab flex-1 py-4 text-center border-b-4">Làm Bài Cá Nhân</div>
+                </div>
+
+                <div class="p-7">
+                    <div id="login-error" class="hidden mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm font-bold border border-red-100"></div>
+                    
+                    <!-- Form Nhóm -->
+                    <div id="form-group" class="block text-left">
+                        <div class="mb-4">
+                            <label class="block text-slate-700 font-bold mb-2">Chọn Nhóm:</label>
+                            <select id="group-select" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-slate-50 font-medium transition">
+                                <option value="">-- Click để chọn nhóm --</option>
+                                <option value="Nhóm 1">Nhóm 1</option><option value="Nhóm 2">Nhóm 2</option>
+                                <option value="Nhóm 3">Nhóm 3</option><option value="Nhóm 4">Nhóm 4</option>
+                                <option value="Nhóm 5">Nhóm 5</option><option value="Nhóm 6">Nhóm 6</option>
+                                <option value="Nhóm 7">Nhóm 7</option><option value="Nhóm 8">Nhóm 8</option>
+                                <option value="Nhóm 9">Nhóm 9</option><option value="Nhóm 10">Nhóm 10</option>
+                                <option value="Nhóm 11">Nhóm 11</option><option value="Nhóm 12">Nhóm 12</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-slate-700 font-bold mb-2">Tên các thành viên (2 đến 4 HS):</label>
+                            <input type="text" id="group-members" placeholder="VD: An, Bình, Châu" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-slate-50 font-medium transition">
+                            <p class="text-xs text-slate-500 mt-1">* Các tên cách nhau bằng dấu phẩy (,)</p>
+                        </div>
+                    </div>
+
+                    <!-- Form Cá Nhân -->
+                    <div id="form-indiv" class="hidden text-left">
+                        <div class="mb-4">
+                            <label class="block text-slate-700 font-bold mb-2">Họ và Tên Học Sinh:</label>
+                            <input type="text" id="indiv-name" placeholder="Nhập họ tên của em..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-slate-50 font-medium transition">
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-slate-700 font-bold mb-2">Mật khẩu (Pass):</label>
+                            <input type="password" id="indiv-pwd" placeholder="Nhập mật khẩu..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-slate-50 font-medium transition">
+                        </div>
+                    </div>
+
+                    <button onclick="startQuiz()" class="btn-primary w-full py-4 rounded-xl font-bold text-lg shadow-lg mt-6">🚀 Bắt Đầu Làm Bài</button>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-center gap-6">
+                <button onclick="showRoleLogin('teacher')" class="text-slate-500 hover:text-blue-600 text-sm font-semibold transition flex items-center gap-1"><span class="text-lg">👨‍🏫</span> Giáo viên Đăng nhập</button>
+                <div class="w-px bg-slate-300"></div>
+                <button onclick="showRoleLogin('parent')" class="text-slate-500 hover:text-emerald-600 text-sm font-semibold transition flex items-center gap-1"><span class="text-lg">👨‍👩‍👧</span> Phụ huynh Đăng nhập</button>
+            </div>
+        </div>
+
+        <div id="quiz-screen" class="screen">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b border-slate-200 gap-4">
+                <div class="font-bold text-lg text-blue-800 bg-blue-100 px-5 py-2 rounded-xl" id="quiz-entity-name">Nhóm 1</div>
+                <div class="font-extrabold text-2xl text-slate-700">Câu <span id="current-q-num" class="text-blue-600">1</span> / <span id="total-q-num">25</span></div>
+                <div class="font-bold text-xl text-red-600 bg-red-50 px-5 py-2 rounded-xl border border-red-100 flex items-center gap-2">
+                    ⏱ <span id="timer-display">30</span>s
+                </div>
+            </div>
+            
+            <div class="progress-bar-container mb-3">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="w-full bg-slate-100 h-2 mb-8 rounded-full overflow-hidden">
+                <div id="timer-bar" class="timer-bar w-full"></div>
+            </div>
+
+            <div id="question-container" class="mb-8 min-h-[300px]"></div>
+            <div id="feedback-container" class="hidden mb-6 p-6 rounded-2xl font-medium shadow-sm transition-all duration-300"></div>
+
+            <div class="flex flex-col-reverse md:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-slate-100">
+                <button onclick="confirmEarlySubmit()" class="btn-danger w-full md:w-auto px-6 py-3 rounded-xl font-bold flex justify-center items-center shadow-md">
+                    🏁 Nộp Bài Sớm
+                </button>
+                <button id="btn-next" onclick="nextQuestion()" class="btn-primary w-full md:w-auto px-10 py-3 rounded-xl font-bold text-lg hidden shadow-md">
+                    Câu Tiếp Theo ⏭
+                </button>
+                <button id="btn-check" onclick="checkAnswer()" class="btn-success w-full md:w-auto px-10 py-3 rounded-xl font-bold text-lg shadow-md">
+                    Chốt Đáp Án ✔️
+                </button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen text-center py-12">
+            <h2 class="text-4xl font-extrabold text-slate-800 mb-8">Đã Nộp Bài Thành Công!</h2>
+            <div class="inline-block bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 mb-10 transform transition-transform hover:scale-105">
+                <p class="text-slate-500 font-bold mb-3 text-xl uppercase tracking-wider" id="result-entity">Nhóm 1</p>
+                <p class="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-emerald-500 mb-4" id="result-score">20 / 25</p>
+                <p class="text-slate-600 font-medium text-lg">Tổng thời gian: <span id="result-time" class="font-bold text-slate-800">00:00</span></p>
+            </div>
+            <p id="result-message" class="text-2xl font-bold mb-10 px-4"></p>
+            <button onclick="location.reload()" class="btn-primary px-10 py-4 rounded-xl font-bold text-xl shadow-lg">Về Màn Hình Chính</button>
+        </div>
+
+        <div id="dashboard-screen" class="screen">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-800 p-6 rounded-2xl shadow-lg">
+                <h2 id="dashboard-title" class="text-2xl font-bold text-white flex items-center gap-3 mb-4 md:mb-0">👨‍🏫 Bảng Điều Khiển</h2>
+                <button onclick="location.reload()" class="px-6 py-2 bg-slate-700 text-white border border-slate-600 rounded-xl hover:bg-slate-600 font-bold transition">Đăng Xuất</button>
+            </div>
+            
+            <div class="flex border-b-2 border-slate-200 mb-8 overflow-x-auto">
+                <button onclick="switchDashTab('group')" id="tab-dash-group" class="dash-tab px-6 py-4 font-bold text-blue-600 border-b-4 border-blue-600 hover:bg-slate-50 transition text-lg whitespace-nowrap">🏆 Thống kê Nhóm</button>
+                <button onclick="switchDashTab('indiv')" id="tab-dash-indiv" class="dash-tab px-6 py-4 font-bold text-slate-400 border-b-4 border-transparent hover:bg-slate-50 hover:text-slate-600 transition text-lg whitespace-nowrap">👤 Thống kê Cá nhân</button>
+                <button onclick="switchDashTab('questions')" id="tab-dash-questions" class="dash-tab px-6 py-4 font-bold text-slate-400 border-b-4 border-transparent hover:bg-slate-50 hover:text-slate-600 transition text-lg whitespace-nowrap">📚 Xem Toàn Bộ Đề</button>
+            </div>
+
+            <div id="view-dash-group" class="dash-view">
+                <div class="overflow-x-auto shadow-md rounded-2xl border border-slate-200">
+                    <table class="w-full text-left">
+                        <thead class="text-sm text-slate-500 uppercase bg-slate-50">
+                            <tr><th class="text-center py-5">Hạng</th><th class="py-5">Tên Nhóm</th><th class="py-5">Thành Viên</th><th class="text-center py-5">Điểm Số</th><th class="text-center py-5">Thời Gian</th></tr>
+                        </thead>
+                        <tbody id="leaderboard-group-body"></tbody>
+                    </table>
+                    <div id="empty-group" class="text-center py-16 text-slate-400 font-medium hidden">Chưa có Nhóm nào nộp bài.</div>
+                </div>
+            </div>
+
+            <div id="view-dash-indiv" class="dash-view hidden">
+                <div class="overflow-x-auto shadow-md rounded-2xl border border-slate-200">
+                    <table class="w-full text-left">
+                        <thead class="text-sm text-slate-500 uppercase bg-slate-50">
+                            <tr><th class="text-center py-5">Hạng</th><th class="py-5">Họ Tên Học Sinh</th><th class="text-center py-5">Điểm Số</th><th class="text-center py-5">Thời Gian</th></tr>
+                        </thead>
+                        <tbody id="leaderboard-indiv-body"></tbody>
+                    </table>
+                    <div id="empty-indiv" class="text-center py-16 text-slate-400 font-medium hidden">Chưa có Cá nhân nào nộp bài.</div>
+                </div>
+            </div>
+
+            <div id="view-dash-questions" class="dash-view hidden">
+                <div id="questions-list-container" class="space-y-8 max-h-[65vh] overflow-y-auto pr-4 custom-scrollbar"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="alert-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div class="text-5xl mb-4">⚠️</div>
+            <h3 id="alert-title" class="text-2xl font-bold mb-2 text-slate-800">Thông Báo</h3>
+            <p id="alert-message" class="text-slate-600 mb-8 font-medium text-lg"></p>
+            <button onclick="closeAlert()" class="btn-primary px-6 py-3 rounded-xl font-bold w-full text-lg shadow-md">Đã Hiểu</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div class="text-6xl mb-4 text-amber-500">🏁</div>
+            <h3 class="text-2xl font-bold mb-3 text-slate-800">Xác Nhận Nộp Bài</h3>
+            <p class="text-slate-600 mb-8 font-medium">Bạn có chắc chắn muốn nộp bài sớm? Các câu chưa làm sẽ bị tính 0 điểm.</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="closeConfirm()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold flex-1 hover:bg-slate-200 transition">Quay Lại</button>
+                <button onclick="forceSubmitQuiz()" class="btn-danger px-6 py-3 rounded-xl font-bold flex-1 shadow-md">Nộp Luôn</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="role-login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="role-icon" class="text-5xl text-center mb-4">👨‍🏫</div>
+            <h3 id="role-title" class="text-2xl font-bold mb-2 text-center text-slate-800">Khu Vực</h3>
+            <p class="text-sm text-slate-500 mb-6 text-center font-medium">Vui lòng nhập mật khẩu quản lý.</p>
+            <input type="password" id="role-pwd" placeholder="Nhập mật khẩu..." class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl mb-2 focus:outline-none focus:border-blue-500 bg-slate-50 font-medium" onkeypress="if(event.key === 'Enter') checkRoleLogin()">
+            <p id="role-err" class="text-red-500 text-sm font-bold mb-6 h-5 text-center"></p>
+            <div class="flex gap-3">
+                <button onclick="closeRoleLogin()" class="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold flex-1 hover:bg-slate-200 transition">Đóng</button>
+                <button onclick="checkRoleLogin()" class="btn-primary px-4 py-3 rounded-xl font-bold flex-1 shadow-md">Đăng Nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /* DỮ LIỆU CÂU HỎI (25 CÂU - LĂNG KÍNH) */
+        const questionsData = [
+            { type: 'mcq', question: 'Lăng kính là một khối chất trong suốt, đồng chất, được giới hạn bởi hai mặt phẳng...', options: ['song song với nhau.', 'vuông góc với nhau.', 'không song song.', 'cắt nhau tạo thành góc vuông.'], correct: 'không song song.', rationale: 'Lăng kính là một khối chất trong suốt, đồng chất, được giới hạn bởi hai mặt phẳng không song song.' },
+            { type: 'mcq', question: 'Góc hợp bởi hai mặt bên của lăng kính được gọi là gì?', options: ['Góc lệch $D$', 'Góc chiết quang $A$', 'Góc tới $i$', 'Góc khúc xạ $r$'], correct: 'Góc chiết quang $A$', rationale: 'Góc $A$ hợp bởi hai mặt bên của lăng kính được gọi là góc chiết quang hay góc ở đỉnh của lăng kính.' },
+            { type: 'mcq', question: 'Về phương diện quang học, một lăng kính được đặc trưng bởi các thông số nào?', options: ['Góc chiết quang $A$ và chiết suất $n$.', 'Góc lệch $D$ và góc chiết quang $A$.', 'Chiết suất $n$ và góc lệch $D$.', 'Chiều cao lăng kính và chiết suất $n$.'], correct: 'Góc chiết quang $A$ và chiết suất $n$.', rationale: 'Một lăng kính được đặc trưng bởi: góc chiết quang $A$; chiết suất $n$ của chất làm lăng kính.' },
+            { type: 'mcq', question: 'Khi chiếu một chùm sáng trắng hẹp đi qua lăng kính, ta sẽ thu được kết quả gì trên màn?', options: ['Một vệt sáng trắng duy nhất.', 'Dải màu từ đỏ đến tím.', 'Chỉ có hai màu đen và trắng.', 'Một vệt sáng màu vàng.'], correct: 'Dải màu từ đỏ đến tím.', rationale: 'Khi chiếu chùm sáng trắng qua lăng kính, ta thu được dải màu từ đỏ đến tím (quang phổ).' },
+            { type: 'mcq', question: 'Hiện tượng chùm sáng trắng bị phân tách thành nhiều chùm sáng màu khác nhau khi đi qua lăng kính gọi là:', options: ['Hiện tượng khúc xạ ánh sáng.', 'Hiện tượng phản xạ ánh sáng.', 'Hiện tượng tán sắc ánh sáng.', 'Hiện tượng nhiễu xạ ánh sáng.'], correct: 'Hiện tượng tán sắc ánh sáng.', rationale: 'Hiện tượng phân tách ánh sáng trắng thành dải màu gọi là hiện tượng tán sắc ánh sáng.' },
+            { type: 'mcq', question: 'Ánh sáng đơn sắc có đặc điểm gì nổi bật khi đi qua lăng kính?', options: ['Bị tán sắc thành nhiều màu.', 'Chỉ bị khúc xạ, không bị tán sắc.', 'Bị phản xạ ngược lại toàn bộ.', 'Truyền thẳng không bị lệch.'], correct: 'Chỉ bị khúc xạ, không bị tán sắc.', rationale: 'Ánh sáng đơn sắc là ánh sáng có một màu nhất định và không bị tán sắc khi qua lăng kính.' },
+            { type: 'mcq', question: 'Khi chiếu tia sáng đơn sắc qua lăng kính (đặt trong không khí), tia ló bao giờ cũng lệch về phía nào so với tia tới?', options: ['Lệch về phía đỉnh $A$.', 'Truyền thẳng theo hướng tia tới.', 'Lệch về phía mặt bên kia.', 'Lệch về phía đáy của lăng kính.'], correct: 'Lệch về phía đáy của lăng kính.', rationale: 'Tia ló ra khỏi lăng kính (n>1) lệch về phía đáy so với tia tới.' },
+            { type: 'mcq', question: 'Chiết suất của thuỷ tinh làm lăng kính đối với các ánh sáng đơn sắc khác nhau thì:', options: ['Hoàn toàn giống nhau.', 'Khác nhau, lớn nhất với tia tím, nhỏ nhất với tia đỏ.', 'Khác nhau, lớn nhất với tia đỏ, nhỏ nhất với tia tím.', 'Khác nhau, lớn nhất với tia vàng.'], correct: 'Khác nhau, lớn nhất với tia tím, nhỏ nhất với tia đỏ.', rationale: 'Chiết suất của lăng kính khác nhau với các màu, lớn nhất với tia tím, nhỏ nhất với tia đỏ.' },
+            { type: 'mcq', question: 'Trong hiện tượng tán sắc ánh sáng trắng qua lăng kính, tia màu nào bị lệch góc nhiều nhất so với phương tia tới?', options: ['Tia màu đỏ.', 'Tia màu vàng.', 'Tia màu lục.', 'Tia màu tím.'], correct: 'Tia màu tím.', rationale: 'Do chiết suất với tia tím lớn nhất ($n_{tím} > n_{đỏ}$) nên tia tím bị lệch nhiều nhất.' },
+            { type: 'mcq', question: 'Vật màu đỏ hấp thụ mạnh những ánh sáng nào?', options: ['Ánh sáng màu đỏ.', 'Tất cả các ánh sáng màu trừ màu đỏ.', 'Chỉ hấp thụ ánh sáng trắng.', 'Không hấp thụ ánh sáng nào.'], correct: 'Tất cả các ánh sáng màu trừ màu đỏ.', rationale: 'Vật màu đỏ phản xạ ánh sáng đỏ và hấp thụ các màu khác.' },
+            { type: 'mcq', question: 'Dưới ánh sáng trắng, ta nhìn thấy vật có màu đen vì sao?', options: ['Vì vật phát ra ánh sáng đen.', 'Vì vật phản xạ tất cả ánh sáng.', 'Vì vật hấp thụ tất cả ánh sáng màu.', 'Vì mắt không phân biệt được màu.'], correct: 'Vì vật hấp thụ tất cả ánh sáng màu.', rationale: 'Vật màu đen hấp thụ tất cả các ánh sáng màu và không có ánh sáng phản xạ.' },
+            { type: 'mcq', question: 'Nếu dùng một tấm lọc màu lục chắn trước chùm ánh sáng trắng, ánh sáng truyền qua tấm lọc sẽ có màu gì?', options: ['Màu trắng.', 'Màu đỏ.', 'Màu lục.', 'Màu đen.'], correct: 'Màu lục.', rationale: 'Tấm lọc màu lục sẽ cho ánh sáng lục truyền qua và hấp thụ các màu khác.' },
+            { type: 'mcq', question: 'Sự tạo thành cầu vồng sau cơn mưa là do hiện tượng quang học nào chủ yếu?', options: ['Phản xạ ánh sáng.', 'Tán sắc ánh sáng.', 'Nhiễu xạ ánh sáng.', 'Giao thoa ánh sáng.'], correct: 'Tán sắc ánh sáng.', rationale: 'Giọt nước đóng vai trò như lăng kính nhỏ gây ra hiện tượng tán sắc tạo ra cầu vồng.' },
+            { type: 'mcq', question: 'Góc $D$ hợp bởi tia tới $SI$ và tia ló $JR$ khi truyền qua lăng kính được gọi là:', options: ['Góc chiết quang.', 'Góc khúc xạ.', 'Góc tới hạn.', 'Góc lệch.'], correct: 'Góc lệch.', rationale: 'Góc $D$ hợp bởi tia tới và tia ló được gọi là góc lệch.' },
+            { type: 'mcq', question: 'Trộn các ánh sáng màu (đỏ, cam, vàng, lục, lam, chàm, tím) bằng cách quay đĩa Newton nhanh sẽ cho ta màu gì?', options: ['Màu đen.', 'Màu trắng.', 'Màu xám.', 'Màu nâu.'], correct: 'Màu trắng.', rationale: 'Bảy màu kết hợp với nhau sẽ tạo thành ánh sáng trắng.' },
+            
+            { type: 'fill', question: 'Lăng kính là một khối chất trong suốt, đồng chất, được giới hạn bởi hai mặt phẳng ____________.', correct: 'không song song', rationale: 'Lăng kính được giới hạn bởi hai mặt phẳng không song song.' },
+            { type: 'fill', question: 'Ánh sáng ____________ là ánh sáng có một màu nhất định và không bị tán sắc khi đi qua lăng kính.', correct: 'đơn sắc', rationale: 'Ánh sáng đơn sắc không bị tán sắc.' },
+            { type: 'fill', question: 'Khi tia sáng truyền qua lăng kính đặt trong không khí, tia ló luôn bị lệch về phía ____________ so với tia tới.', correct: 'đáy', rationale: 'Tia sáng qua lăng kính luôn bẻ cong về phía đáy.' },
+            
+            { type: 'matching', question: 'Ghép nối các bộ phận của lăng kính với mô tả tương ứng:', pairs: [
+                { left: 'Góc chiết quang $A$', right: 'Góc hợp bởi hai mặt bên' },
+                { left: 'Mặt bên', right: 'Hai mặt phẳng giới hạn ở trên' },
+                { left: 'Đáy lăng kính', right: 'Mặt đối diện với cạnh lăng kính' },
+                { left: 'Cạnh lăng kính', right: 'Giao tuyến của hai mặt bên' }
+            ], rationale: 'Dựa vào định nghĩa cấu tạo lăng kính SGK.' },
+            { type: 'matching', question: 'Ghép nối đặc điểm màu sắc của vật dưới ánh sáng trắng:', pairs: [
+                { left: 'Vật màu trắng', right: 'Phản xạ tất cả các ánh sáng màu' },
+                { left: 'Vật màu đen', right: 'Hấp thụ tất cả các ánh sáng màu' },
+                { left: 'Vật màu đỏ', right: 'Phản xạ màu đỏ, hấp thụ màu khác' },
+                { left: 'Tấm lọc màu', right: 'Cho ánh sáng cùng màu đi qua' }
+            ], rationale: 'Tính chất phản xạ và hấp thụ màu sắc.' },
+            { type: 'matching', question: 'Ghép nối so sánh tính chất các tia sáng khi qua lăng kính:', pairs: [
+                { left: 'Chiết suất $n_{tím}$', right: 'Lớn nhất trong các màu' },
+                { left: 'Chiết suất $n_{đỏ}$', right: 'Nhỏ nhất trong các màu' },
+                { left: 'Tia tím', right: 'Bị lệch về đáy nhiều nhất' },
+                { left: 'Tia đỏ', right: 'Bị lệch về đáy ít nhất' }
+            ], rationale: '$n_{tím} > n_{đỏ}$ nên góc lệch $D_{tím} > D_{đỏ}$.' },
+            
+            { type: 'drag-drop-fill', question: 'Khi chiếu một chùm sáng [1] hẹp qua lăng kính ta thu được nhiều chùm sáng [2] khác nhau. Dải màu này có các màu: đỏ, cam, vàng, lục, lam, chàm, [3]. Hiện tượng này là sự [4] ánh sáng.', options: ['trắng', 'màu', 'tím', 'tán sắc'], answers: { '1': 'trắng', '2': 'màu', '3': 'tím', '4': 'tán sắc' }, rationale: 'SGK tổng kết hiện tượng tán sắc ánh sáng trắng.' },
+            { type: 'drag-drop-fill', question: 'Tia sáng đơn sắc khúc xạ qua lăng kính: Tại mặt thứ nhất lệch [1] pháp tuyến hơn. Tại mặt thứ hai lệch [2] pháp tuyến hơn. Kết quả tia ló bị lệch về phía [3] lăng kính.', options: ['gần', 'xa', 'đáy'], answers: { '1': 'gần', '2': 'xa', '3': 'đáy' }, rationale: 'Khúc xạ gần/xa pháp tuyến khiến tia bị bẻ cong về đáy.' },
+            { type: 'drag-drop-fill', question: 'Cầu vồng: Các giọt nước đóng vai trò như [1]. Ánh sáng Mặt Trời bị [2] và phản xạ toàn phần, gây ra hiện tượng [3] tạo dải màu.', options: ['lăng kính', 'khúc xạ', 'tán sắc'], answers: { '1': 'lăng kính', '2': 'khúc xạ', '3': 'tán sắc' }, rationale: 'Ứng dụng tán sắc qua giọt nước.' },
+            { type: 'drag-drop-fill', question: 'Màu sắc vật phụ thuộc vào ánh sáng bị vật đó [1] và [2]. Vật màu đỏ dưới ánh sáng trắng phản xạ màu đỏ, các màu khác bị [3].', options: ['hấp thụ', 'phản xạ', 'hấp thụ'], answers: { '1': 'hấp thụ', '2': 'phản xạ', '3': 'hấp thụ' }, rationale: 'Màu sắc vật thể.' }
+        ];
+
+        /* TRẠNG THÁI ỨNG DỤNG */
+        let currentLoginMode = 'group'; // 'group' or 'individual'
+        let currentEntity = { name: '', members: '' };
+        
+        let questions = [];
+        let currentQIndex = 0;
+        let score = 0;
+        let timerInterval, timeLeft = 30, timeSpent = 0, mainTimer;
+        let selectedDraggable = null;
+
+        // Lưu trữ tách biệt 2 mảng
+        window.groupLeaderboard = [];
+        window.indivLeaderboard = [];
+        
+        // Quản lý Modal & Quyền
+        let currentRoleOpen = null;
+
+        /* HỆ THỐNG ÂM THANH */
+        let synth;
+        function initAudio() {
+            if (typeof Tone !== 'undefined' && !synth) {
+                synth = new Tone.Synth().toDestination();
+                Tone.start();
+            }
+        }
+        function playSound(type) {
+            if (!synth) return;
+            try {
+                if (type === 'correct') { synth.triggerAttackRelease("C5", "8n"); setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 150); } 
+                else if (type === 'wrong') { synth.triggerAttackRelease("C3", "8n"); } 
+                else if (type === 'timeout') { synth.triggerAttackRelease("F2", "4n"); } 
+                else if (type === 'win') {
+                    const now = Tone.now(); synth.triggerAttackRelease("C4", "8n", now); synth.triggerAttackRelease("E4", "8n", now + 0.2);
+                    synth.triggerAttackRelease("G4", "8n", now + 0.4); synth.triggerAttackRelease("C5", "4n", now + 0.6);
+                }
+            } catch(e) {}
+        }
+
+        /* TIỆN ÍCH */
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        /* ĐIỀU KHIỂN GIAO DIỆN CHUNG */
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+        
+        function showAlert(title, message) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+        
+        function confirmEarlySubmit() { document.getElementById('confirm-modal').style.display = 'flex'; }
+        function closeConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
+
+        /* ĐIỀU KHIỂN TABS ĐĂNG NHẬP */
+        function switchLoginMode(mode) {
+            currentLoginMode = mode;
+            const tabG = document.getElementById('tab-login-group');
+            const tabI = document.getElementById('tab-login-indiv');
+            const formG = document.getElementById('form-group');
+            const formI = document.getElementById('form-indiv');
+            const err = document.getElementById('login-error');
+            err.classList.add('hidden');
+
+            if(mode === 'group') {
+                tabG.classList.add('active'); tabI.classList.remove('active');
+                formG.classList.remove('hidden'); formI.classList.add('hidden');
+            } else {
+                tabI.classList.add('active'); tabG.classList.remove('active');
+                formI.classList.remove('hidden'); formG.classList.add('hidden');
+            }
+        }
+
+        /* BẮT ĐẦU THI */
+        function startQuiz() {
+            initAudio();
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.add('hidden');
+
+            if (currentLoginMode === 'group') {
+                const groupSelect = document.getElementById('group-select').value;
+                const membersStr = document.getElementById('group-members').value.trim();
+                
+                if (!groupSelect) { errorDiv.innerText = "❌ Vui lòng chọn Nhóm!"; errorDiv.classList.remove('hidden'); return; }
+                if (!membersStr) { errorDiv.innerText = "❌ Vui lòng nhập tên thành viên!"; errorDiv.classList.remove('hidden'); return; }
+                
+                const memberArr = membersStr.split(',').map(m => m.trim()).filter(m => m !== '');
+                if (memberArr.length < 2 || memberArr.length > 4) {
+                    errorDiv.innerText = "❌ Nhóm phải có từ 2 đến 4 học sinh (cách nhau bằng dấu phẩy)!";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+                
+                currentEntity = { name: groupSelect, members: membersStr };
+                document.getElementById('quiz-entity-name').innerText = groupSelect;
+            } else {
+                const indivName = document.getElementById('indiv-name').value.trim();
+                const indivPwd = document.getElementById('indiv-pwd').value;
+                
+                if (!indivName) { errorDiv.innerText = "❌ Vui lòng nhập Họ Tên của em!"; errorDiv.classList.remove('hidden'); return; }
+                if (indivPwd !== '123456') { errorDiv.innerText = "❌ Sai mật khẩu cá nhân!"; errorDiv.classList.remove('hidden'); return; }
+                
+                currentEntity = { name: indivName, members: 'Cá nhân' };
+                document.getElementById('quiz-entity-name').innerText = indivName;
+            }
+
+            questions = shuffleArray(questionsData).map(q => {
+                if (q.type === 'mcq') return { ...q, options: shuffleArray(q.options) };
+                return q;
+            });
+
+            currentQIndex = 0; score = 0; timeSpent = 0; selectedDraggable = null;
+            mainTimer = setInterval(() => timeSpent++, 1000);
+            
+            showScreen('quiz-screen');
+            renderQuestion();
+        }
+
+        /* XỬ LÝ RENDER CÂU HỎI */
+        function renderQuestion() {
+            const q = questions[currentQIndex];
+            document.getElementById('current-q-num').innerText = currentQIndex + 1;
+            document.getElementById('total-q-num').innerText = questions.length;
+            
+            document.getElementById('progress-bar').style.width = `${(currentQIndex / questions.length) * 100}%`;
+            clearInterval(timerInterval); timeLeft = 30;
+            document.getElementById('timer-display').innerText = timeLeft;
+            document.getElementById('timer-bar').style.width = '100%';
+            document.getElementById('timer-bar').style.backgroundColor = '#0ea5e9';
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-display').innerText = timeLeft;
+                document.getElementById('timer-bar').style.width = `${(timeLeft / 30) * 100}%`;
+                if(timeLeft <= 10) document.getElementById('timer-bar').style.backgroundColor = '#ef4444';
+                if (timeLeft <= 0) { clearInterval(timerInterval); playSound('timeout'); handleTimeOut(); }
+            }, 1000);
+
+            document.getElementById('feedback-container').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('btn-check').classList.remove('hidden');
+            selectedDraggable = null;
+
+            const container = document.getElementById('question-container');
+            let html = `<h3 class="text-xl md:text-2xl font-bold mb-6 text-slate-800 leading-relaxed">Câu ${currentQIndex + 1}: ${q.question}</h3>`;
+
+            if (q.type === 'mcq') {
+                html += `<div class="space-y-4 mt-2">`;
+                q.options.forEach(opt => {
+                    html += `
+                        <label class="flex items-center p-5 border-2 border-slate-100 rounded-2xl hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition shadow-sm bg-white">
+                            <input type="radio" name="mcq-answer" value="${opt.replace(/"/g, '&quot;')}" class="w-6 h-6 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-4 text-lg font-medium text-slate-700 w-full">${opt}</span>
+                        </label>`;
+                });
+                html += `</div>`;
+            } 
+            else if (q.type === 'fill') {
+                html += `<div class="mt-6"><input type="text" id="fill-answer" placeholder="Nhập câu trả lời..." class="w-full p-5 border-2 border-slate-300 rounded-2xl text-xl font-semibold focus:outline-none focus:border-blue-500 shadow-inner transition"></div>`;
+            }
+            else if (q.type === 'drag-drop-fill') {
+                let qText = q.question;
+                Object.keys(q.answers).forEach(key => {
+                    qText = qText.replace(`[${key}]`, `<span class="dropzone shadow-inner" data-id="${key}" onclick="handleDropzoneClick(this)"></span>`);
+                });
+                html = `<h3 class="text-xl md:text-2xl font-bold mb-6 text-slate-800 leading-relaxed">Câu ${currentQIndex + 1}: ${qText}</h3>`;
+                html += `<div class="bg-slate-100 p-6 rounded-2xl border border-slate-200 mt-6 text-center min-h-[100px] shadow-inner flex flex-wrap justify-center gap-4" id="draggables-pool">`;
+                shuffleArray(q.options).forEach(opt => {
+                    html += `<div class="draggable text-lg" data-value="${opt.replace(/"/g, '&quot;')}" onclick="handleDraggableClick(this)">${opt}</div>`;
+                });
+                html += `</div><p class="text-sm text-blue-600 mt-4 text-center font-bold bg-blue-50 p-3 rounded-xl border border-blue-100">👉 CHẠM CHỌN CHỮ ➔ CHẠM Ô TRỐNG ĐỂ GHÉP.</p>`;
+            }
+            else if (q.type === 'matching') {
+                html += `<div class="flex flex-col md:flex-row gap-6 mt-4"><div class="flex-1 space-y-4">`;
+                q.pairs.forEach((pair, idx) => {
+                    html += `<div class="flex items-center justify-between p-4 border-2 border-slate-100 rounded-xl bg-white shadow-sm h-24">
+                        <div class="font-bold text-slate-700 flex-1 pr-2">${pair.left}</div>
+                        <div class="dropzone w-1/2 flex items-center justify-center text-sm text-slate-400 h-full shadow-inner border-dashed" data-id="${idx}" onclick="handleDropzoneClick(this)">Ghép vào đây</div>
+                    </div>`;
+                });
+                html += `</div><div class="flex-1 flex flex-col justify-center space-y-4 bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 shadow-inner min-h-[400px]" id="draggables-pool">`;
+                shuffleArray(q.pairs).forEach((item) => {
+                    html += `<div class="draggable w-full text-center py-4 font-bold text-blue-800 bg-white shadow-sm" data-value="${item.right.replace(/"/g, '&quot;')}" onclick="handleDraggableClick(this)">${item.right}</div>`;
+                });
+                html += `</div></div><p class="text-sm text-blue-600 mt-5 text-center font-bold bg-blue-50 p-3 rounded-xl border border-blue-100">👉 CHẠM ĐÁP ÁN BÊN PHẢI ➔ CHẠM Ô TRỐNG BÊN TRÁI ĐỂ GHÉP.</p>`;
+            }
+
+            container.innerHTML = html;
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([container]).catch(e => console.log(e));
+        }
+
+        /* LÔGIC CLICK-TO-MATCH */
+        function handleDraggableClick(element) {
+            if (selectedDraggable === element) { element.classList.remove('selected-to-drop'); selectedDraggable = null; return; }
+            if (selectedDraggable) selectedDraggable.classList.remove('selected-to-drop');
+            if (element.parentElement.classList.contains('dropzone')) {
+                document.getElementById('draggables-pool').appendChild(element); element.parentElement.classList.remove('filled'); return;
+            }
+            selectedDraggable = element; element.classList.add('selected-to-drop');
+        }
+
+        function handleDropzoneClick(dropzone) {
+            if (dropzone.children.length > 0) {
+                 const child = dropzone.children[0]; document.getElementById('draggables-pool').appendChild(child);
+                 child.classList.remove('selected-to-drop'); dropzone.classList.remove('filled');
+                 if(selectedDraggable === child) selectedDraggable = null; return;
+            }
+            if (selectedDraggable) {
+                dropzone.appendChild(selectedDraggable); selectedDraggable.classList.remove('selected-to-drop');
+                dropzone.classList.add('filled'); selectedDraggable = null;
+            }
+        }
+
+        /* XỬ LÝ TRẢ LỜI */
+        function checkAnswer() {
+            clearInterval(timerInterval);
+            const q = questions[currentQIndex];
+            let isCorrect = false;
+
+            if (q.type === 'mcq') {
+                const selected = document.querySelector('input[name="mcq-answer"]:checked');
+                if (!selected) return warnMissingAnswer();
+                isCorrect = (selected.value === q.correct);
+            } 
+            else if (q.type === 'fill') {
+                const ans = document.getElementById('fill-answer').value.trim().toLowerCase();
+                if (!ans) return warnMissingAnswer();
+                isCorrect = (ans === q.correct.toLowerCase());
+            }
+            else if (q.type === 'drag-drop-fill') {
+                const dropzones = document.querySelectorAll('.dropzone');
+                let answered = 0; isCorrect = true;
+                dropzones.forEach(dz => {
+                    if (dz.children.length > 0) {
+                        answered++;
+                        if (dz.children[0].getAttribute('data-value') !== q.answers[dz.getAttribute('data-id')]) isCorrect = false;
+                    } else isCorrect = false;
+                });
+                if(answered === 0) return warnMissingAnswer();
+            }
+            else if (q.type === 'matching') {
+                const dropzones = document.querySelectorAll('.dropzone');
+                let answered = 0; isCorrect = true;
+                dropzones.forEach(dz => {
+                    if (dz.children.length > 0) {
+                        answered++;
+                        if (dz.children[0].getAttribute('data-value') !== q.pairs[parseInt(dz.getAttribute('data-id'))].right) isCorrect = false;
+                    } else isCorrect = false;
+                });
+                if(answered === 0) return warnMissingAnswer();
+            }
+            processResult(isCorrect, q.rationale);
+        }
+
+        function warnMissingAnswer() {
+            showAlert("Chưa làm xong", "Bạn chưa hoàn thành câu trả lời. Hãy nhanh tay lên nhé!");
+            timerInterval = setInterval(() => {
+                timeLeft--; document.getElementById('timer-display').innerText = timeLeft;
+                if(timeLeft <= 0) { clearInterval(timerInterval); handleTimeOut(); closeAlert(); }
+            }, 1000);
+        }
+
+        function handleTimeOut() { processResult(false, "Đã hết 30 giây! Bắt buộc chuyển câu. <br><br>" + questions[currentQIndex].rationale); }
+
+        function processResult(isCorrect, rationaleText) {
+            const feedback = document.getElementById('feedback-container');
+            feedback.className = "mb-6 p-6 rounded-2xl font-medium shadow-sm transition-all duration-300 border-2";
+            
+            if (isCorrect) {
+                score++; playSound('correct');
+                const msgs = ["✅ Chúc mừng bạn, xuất sắc!", "✅ Ồ de, chính xác rồi!", "✅ Bạn quá đỉnh!"];
+                feedback.classList.add('bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+                feedback.innerHTML = `<p class="font-extrabold text-2xl mb-3 text-emerald-600">${msgs[Math.floor(Math.random()*msgs.length)]}</p><p class="text-lg bg-white p-4 rounded-xl border border-emerald-100 shadow-sm">📖 <b>Giải thích:</b> ${rationaleText}</p>`;
+            } else {
+                playSound('wrong');
+                feedback.classList.add('bg-red-50', 'text-red-900', 'border-red-200');
+                feedback.innerHTML = `<p class="font-extrabold text-2xl mb-3 text-red-600">❌ Bạn sai rồi!</p><p class="text-lg bg-white p-4 rounded-xl border border-red-100 shadow-sm">📖 <b>Giải thích:</b> ${rationaleText}</p>`;
+            }
+
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([feedback]).catch(e => console.log(e));
+            document.getElementById('btn-check').classList.add('hidden');
+            document.getElementById('btn-next').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQIndex++;
+            if (currentQIndex < questions.length) renderQuestion(); else endQuiz();
+        }
+
+        function forceSubmitQuiz() { closeConfirm(); clearInterval(timerInterval); endQuiz(); }
+
+        /* KẾT THÚC VÀ LƯU ĐIỂM */
+        function endQuiz() {
+            clearInterval(mainTimer);
+            const timeStr = `${Math.floor(timeSpent / 60).toString().padStart(2, '0')}:${(timeSpent % 60).toString().padStart(2, '0')}`;
+            
+            const resultData = { name: currentEntity.name, members: currentEntity.members, score: score, time: timeSpent, timeStr: timeStr };
+            
+            // Phân loại lưu trữ
+            if (currentLoginMode === 'group') { window.groupLeaderboard.push(resultData); } 
+            else { window.indivLeaderboard.push(resultData); }
+
+            document.getElementById('result-entity').innerText = currentLoginMode === 'group' ? `Nhóm: ${currentEntity.name}` : `Cá nhân: ${currentEntity.name}`;
+            document.getElementById('result-score').innerText = `${score} / ${questions.length}`;
+            document.getElementById('result-time').innerText = timeStr;
+
+            const msgEl = document.getElementById('result-message');
+            if (score >= 20) {
+                msgEl.innerText = "🎉 Xin chúc mừng đã hoàn thành XUẤT SẮC nhiệm vụ!";
+                msgEl.className = "text-3xl font-extrabold mb-10 text-emerald-600 px-4";
+                playSound('win');
+                if(typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            } else if (score <= 10) {
+                msgEl.innerText = "🥺 Đừng buồn nhé, bạn cần xem kĩ lại lý thuyết!";
+                msgEl.className = "text-2xl font-bold mb-10 text-red-500 px-4";
+            } else {
+                msgEl.innerText = "👍 Rất khá! Hãy cố gắng lấy trọn điểm ở bài sau nhé!";
+                msgEl.className = "text-2xl font-bold mb-10 text-blue-600 px-4";
+            }
+            showScreen('result-screen');
+        }
+
+        function showRoleLogin(role) {
+            currentRoleOpen = role;
+            document.getElementById('role-icon').innerText = role === 'teacher' ? '👨‍🏫' : '👨‍👩‍👧';
+            document.getElementById('role-title').innerText = role === 'teacher' ? 'Khu Vực Giáo Viên' : 'Khu Vực Phụ Huynh';
+            document.getElementById('role-pwd').value = '';
+            document.getElementById('role-err').innerText = '';
+            document.getElementById('role-login-modal').style.display = 'flex';
+        }
+        function closeRoleLogin() { document.getElementById('role-login-modal').style.display = 'none'; }
+        
+        function checkRoleLogin() {
+            const pwd = document.getElementById('role-pwd').value;
+            let isCorrect = false;
+            
+            if (currentRoleOpen === 'teacher' && pwd === '123') {
+                isCorrect = true;
+            } else if (currentRoleOpen === 'parent' && pwd === '123456') {
+                isCorrect = true;
+            }
+
+            if (isCorrect) {
+                closeRoleLogin(); showScreen('dashboard-screen'); setupDashboard(currentRoleOpen);
+            } else { 
+                document.getElementById('role-err').innerText = "Sai mật khẩu!"; 
+            }
+        }
+
+        function setupDashboard(role) {
+            const title = document.getElementById('dashboard-title');
+            const tabGroup = document.getElementById('tab-dash-group');
+            const tabIndiv = document.getElementById('tab-dash-indiv');
+            const tabQuestions = document.getElementById('tab-dash-questions');
+            
+            if (role === 'teacher') {
+                title.innerHTML = '👨‍🏫 Bảng Điều Khiển Giáo Viên';
+                tabGroup.style.display = 'inline-block';
+                tabIndiv.style.display = 'inline-block';
+                tabQuestions.style.display = 'inline-block';
+                switchDashTab('group'); // Mặc định mở tab Nhóm
+            } else {
+                title.innerHTML = '👨‍👩‍👧 Bảng Theo Dõi Phụ Huynh';
+                tabGroup.style.display = 'none'; // Ẩn Thống kê nhóm đối với Phụ huynh
+                tabIndiv.style.display = 'inline-block'; // Hiện Thống kê cá nhân
+                tabQuestions.style.display = 'none'; // Ẩn Xem đề đối với Phụ huynh
+                switchDashTab('indiv'); // Mặc định mở tab Cá nhân
+            }
+        }
+
+        function switchDashTab(tab) {
+            document.querySelectorAll('.dash-tab').forEach(t => {
+                t.classList.remove('text-blue-600', 'border-blue-600', 'hover:bg-blue-50');
+                t.classList.add('text-slate-400', 'border-transparent', 'hover:bg-slate-50');
+            });
+            document.getElementById(`tab-dash-${tab}`).classList.add('text-blue-600', 'border-blue-600', 'hover:bg-blue-50');
+            document.getElementById(`tab-dash-${tab}`).classList.remove('text-slate-400', 'border-transparent');
+            
+            document.querySelectorAll('.dash-view').forEach(v => v.classList.add('hidden'));
+            document.getElementById(`view-dash-${tab}`).classList.remove('hidden');
+
+            if(tab === 'group') renderLeaderboard(window.groupLeaderboard, 'leaderboard-group-body', 'empty-group', true);
+            else if(tab === 'indiv') renderLeaderboard(window.indivLeaderboard, 'leaderboard-indiv-body', 'empty-indiv', false);
+            else renderAllQuestions();
+        }
+
+        function renderLeaderboard(dataArray, bodyId, emptyId, isGroup) {
+            const tbody = document.getElementById(bodyId);
+            const empty = document.getElementById(emptyId);
+            if (dataArray.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            const sorted = [...dataArray].sort((a, b) => b.score !== a.score ? b.score - a.score : a.time - b.time);
+            tbody.innerHTML = sorted.map((row, idx) => `
+                <tr class="bg-white border-b hover:bg-blue-50 transition">
+                    <td class="font-extrabold text-center text-xl py-4">${['🥇','🥈','🥉'][idx] || (idx + 1)}</td>
+                    <td class="font-bold text-blue-800 text-lg">${row.name}</td>
+                    ${isGroup ? `<td class="text-slate-600 font-medium">${row.members}</td>` : ''}
+                    <td class="font-black text-emerald-600 text-center text-2xl">${row.score}</td>
+                    <td class="text-center font-bold text-slate-700">${row.timeStr}</td>
+                </tr>`).join('');
+        }
+
+        function renderAllQuestions() {
+            const container = document.getElementById('questions-list-container');
+            let html = '';
+            questionsData.forEach((q, idx) => {
+                let qText = q.question;
+                if (q.type === 'drag-drop-fill') Object.keys(q.answers).forEach(k => { qText = qText.replace(`[${k}]`, `[<span class="text-rose-500 font-bold">${k}</span>]`); });
+
+                html += `<div class="p-7 border-2 border-slate-100 rounded-2xl bg-white shadow-sm transition hover:shadow-md">
+                    <h4 class="font-bold text-slate-800 mb-4 text-xl">Câu ${idx + 1}: ${qText}</h4>`;
+                
+                if (q.type === 'mcq') {
+                    html += `<ul class="space-y-2 mb-4 text-slate-700 font-medium text-lg">`;
+                    q.options.forEach(opt => html += `<li class="${opt === q.correct ? 'text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100 inline-block' : ''}">- ${opt} ${opt === q.correct ? ' (Đúng)' : ''}</li><br>`);
+                    html += `</ul>`;
+                } else if (q.type === 'fill') html += `<p class="text-lg text-emerald-700 font-bold mb-4 bg-emerald-50 p-3 rounded-xl border border-emerald-100">ĐÁP ÁN: ${q.correct}</p>`;
+                else if (q.type === 'drag-drop-fill') html += `<p class="text-lg text-emerald-700 font-bold mb-4 bg-emerald-50 p-3 rounded-xl border border-emerald-100">GHÉP: ${Object.keys(q.answers).map(k => `[${k}] = ${q.answers[k]}`).join(' ; ')}</p>`;
+                else if (q.type === 'matching') {
+                    html += `<ul class="space-y-3 mb-4 text-lg">`;
+                    q.pairs.forEach(p => html += `<li class="flex items-center gap-3"><span class="bg-slate-100 p-2 rounded-lg font-semibold">${p.left}</span> ➔ <span class="bg-emerald-50 text-emerald-700 font-bold p-2 rounded-lg border border-emerald-100">${p.right}</span></li>`);
+                    html += `</ul>`;
+                }
+                html += `<div class="bg-blue-50 p-4 rounded-xl text-blue-900 border border-blue-100 font-medium text-lg"><b class="text-blue-700">📖 Giải thích:</b> ${q.rationale}</div></div>`;
+            });
+            container.innerHTML = html;
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([container]).catch(e=>console.log(e));
+        }
+
+        /* GÁN HÀM RA WINDOW ĐỂ NÚT HTML GỌI ĐƯỢC KHI DÙNG TYPE="MODULE" */
+        window.switchLoginMode = switchLoginMode;
+        window.startQuiz = startQuiz;
+        window.showAlert = showAlert;
+        window.closeAlert = closeAlert;
+        window.confirmEarlySubmit = confirmEarlySubmit;
+        window.closeConfirm = closeConfirm;
+        window.showRoleLogin = showRoleLogin;
+        window.closeRoleLogin = closeRoleLogin;
+        window.checkRoleLogin = checkRoleLogin;
+        window.switchDashTab = switchDashTab;
+        window.nextQuestion = nextQuestion;
+        window.checkAnswer = checkAnswer;
+        window.forceSubmitQuiz = forceSubmitQuiz;
+        window.handleDraggableClick = handleDraggableClick;
+        window.handleDropzoneClick = handleDropzoneClick;
+    </script>
+</body>
+</html>

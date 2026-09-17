@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Tương Tác Vật Lí - Độ Dịch Chuyển</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        window.MathJax = {
+            startup: { typeset: false }, // Tắt tự động render để tự kiểm soát
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; overflow-x: hidden; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        /* CTM (Click-to-match) Styles */
+        .ctm-target { 
+            display: inline-flex; align-items: center; justify-content: center; 
+            min-width: 90px; min-height: 36px; padding: 4px 12px; margin: 0 6px;
+            border: 2px dashed #94a3b8; border-radius: 6px; 
+            background-color: #f8fafc; color: #2563eb; font-weight: 600;
+            cursor: pointer; vertical-align: middle; transition: all 0.2s;
+        }
+        .ctm-target:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .ctm-target.filled { border-style: solid; border-color: #3b82f6; background-color: #dbeafe; }
+        
+        .ctm-source {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 8px 16px; margin: 4px; border-radius: 9999px;
+            background-color: #e0e7ff; color: #3730a3; font-weight: 600; border: 2px solid transparent;
+            cursor: pointer; transition: all 0.2s; user-select: none;
+        }
+        .ctm-source:hover:not(.used) { background-color: #c7d2fe; transform: translateY(-2px); }
+        .ctm-source.active { border-color: #4f46e5; background-color: #c7d2fe; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        .ctm-source.used { opacity: 0.4; cursor: not-allowed; transform: none; background-color: #f1f5f9; color: #94a3b8; }
+        
+        /* MathJax Protect */
+        .ctm-source mjx-container, .ctm-target mjx-container { pointer-events: none; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+    </style>
+</head>
+<body>
+
+    <div id="app-root" class="min-h-screen w-full flex flex-col"></div>
+
+    <script>
+        // --- 25 CÂU HỎI VẬT LÍ (CHUẨN BÀI 4 - SGK) ---
+        // Lưu ý: Tất cả các dấu backslash trong LaTeX phải được viết đôi (\\) để JS hiểu đúng.
+        const QUESTION_BANK = [
+            // Dạng 1: Trắc nghiệm (MULTIPLE_CHOICE)
+            { type: 'MC', q: 'Hệ quy chiếu bao gồm những yếu tố nào sau đây?', opts: ['Hệ toạ độ và mốc thời gian.', 'Hệ toạ độ kết hợp với mốc thời gian và đồng hồ đo thời gian.', 'Vật làm mốc và đồng hồ đo thời gian.', 'Quỹ đạo chuyển động và hệ toạ độ.'], ans: 1, exp: 'Theo SGK, Hệ quy chiếu = Hệ toạ độ gắn với vật mốc + Mốc thời gian và đồng hồ đo.' },
+            { type: 'MC', q: 'Đại lượng nào sau đây là đại lượng vectơ?', opts: ['Quãng đường đi được.', 'Thời gian chuyển động.', 'Độ dịch chuyển.', 'Tốc độ chuyển động.'], ans: 2, exp: 'Độ dịch chuyển có phân biệt điểm đầu và điểm cuối (có hướng) nên là đại lượng vectơ. Quãng đường và thời gian là vô hướng.' },
+            { type: 'MC', q: 'Trong trường hợp nào độ lớn của độ dịch chuyển bằng quãng đường đi được?', opts: ['Vật chuyển động trên đường cong.', 'Vật chuyển động trên đường thẳng và không đổi chiều.', 'Vật chuyển động trên đường thẳng và có đổi chiều.', 'Vật chuyển động tròn chu kì không đổi.'], ans: 1, exp: 'Khi vật chuyển động thẳng và không đổi chiều, hướng chuyển động được giữ nguyên nên độ lớn độ dịch chuyển $d$ bằng quãng đường $s$.' },
+            { type: 'MC', q: 'Một ô tô đi 3 km về phía Bắc, sau đó rẽ trái đi 4 km về phía Tây. Độ lớn độ dịch chuyển của ô tô là:', opts: ['7 km', '1 km', '5 km', '12 km'], ans: 2, exp: 'Áp dụng định lí Pytago cho tam giác vuông: $d = \\sqrt{3^2 + 4^2} = \\sqrt{25} = 5$ km.' },
+            { type: 'MC', q: 'Trong bài toán trên (đi 3km Bắc, 4km Tây), quãng đường ô tô đã đi được là:', opts: ['5 km', '7 km', '1 km', '12 km'], ans: 1, exp: 'Quãng đường là tổng chiều dài quỹ đạo: $s = 3 + 4 = 7$ km.' },
+            { type: 'MC', q: 'Một người bơi dọc theo chiều dài 50m của bể bơi rồi quay lại vị trí xuất phát. Độ dịch chuyển của người đó là:', opts: ['100 m', '50 m', '0 m', '25 m'], ans: 2, exp: 'Vì vị trí điểm cuối trùng với vị trí điểm đầu, độ dịch chuyển $d = 0$.' },
+            { type: 'MC', q: 'Cũng người bơi trong bể 50m bơi đi rồi quay lại vị trí ban đầu. Quãng đường người đó bơi được là:', opts: ['50 m', '0 m', '100 m', '2500 m'], ans: 2, exp: 'Quãng đường bằng tổng quỹ đạo: $s = 50 + 50 = 100$ m.' },
+            { type: 'MC', q: 'Trên hệ trục toạ độ Ox, một vật đi từ điểm A có toạ độ $x_A = 10$ m đến điểm B có toạ độ $x_B = -5$ m. Độ dịch chuyển của vật là:', opts: ['15 m', '-15 m', '5 m', '-5 m'], ans: 1, exp: 'Độ dịch chuyển trên trục Ox: $\\Delta x = x_B - x_A = -5 - 10 = -15$ m.' },
+            { type: 'MC', q: 'Một xe đạp đi từ nhà tới trường cách nhà 2 km. Đi được nửa đường thì nhớ quên sách nên quay về nhà lấy, sau đó đi thẳng tới trường. Quãng đường xe đạp đã đi là:', opts: ['2 km', '3 km', '4 km', '0 km'], ans: 2, exp: 'Đi nửa đường (1km), quay lại nhà (1km), đi tới trường (2km). Tổng $s = 1 + 1 + 2 = 4$ km.' },
+            { type: 'MC', q: 'Độ dịch chuyển của xe đạp trong câu hỏi trên (quay về lấy sách rồi tới trường) là:', opts: ['2 km', '3 km', '4 km', '0 km'], ans: 0, exp: 'Bất chấp quỹ đạo, điểm đầu là nhà, điểm cuối là trường cách nhà 2km. Nên độ lớn độ dịch chuyển $d = 2$ km.' },
+            
+            // Dạng 2: Điền khuyết (FILL_BLANK)
+            { type: 'FIB', q: 'Một người đi bộ 6 km về hướng Tây, sau đó đi 8 km về hướng Nam. Độ lớn độ dịch chuyển của người đó là bao nhiêu km?', ans: '10', exp: 'Quỹ đạo tạo thành tam giác vuông. Độ dịch chuyển $d = \\sqrt{6^2 + 8^2} = \\sqrt{100} = 10$ km.' },
+            { type: 'FIB', q: 'Trên trục Ox, vật đi từ $x_1 = 5$ m đến $x_2 = 12$ m. Tính quãng đường vật đi được (đơn vị: m).', ans: '7', exp: 'Vì vật đi theo 1 chiều, quãng đường $s = |12 - 5| = 7$ m.' },
+            { type: 'FIB', q: 'Một ô tô chạy một vòng tròn khép kín có bán kính $R = 100$ m. Độ dịch chuyển của ô tô bằng bao nhiêu m?', ans: '0', exp: 'Chạy một vòng khép kín thì điểm cuối trùng điểm đầu, nên độ dịch chuyển bằng 0.' },
+            { type: 'FIB', q: 'Một người đi thang máy từ tầng 1 lên tầng 5, rồi lại xuống tầng 3. Biết mỗi tầng cách nhau 3m. Quãng đường người đó đi được là bao nhiêu m?', ans: '18', exp: 'Lên từ tầng 1->5 (4 tầng) = $4 \\times 3 = 12$m. Xuống 5->3 (2 tầng) = $2 \\times 3 = 6$m. Tổng $s = 12 + 6 = 18$m.' },
+            { type: 'FIB', q: 'Trong trường hợp đi thang máy trên (lên tầng 5 rồi xuống tầng 3), độ dịch chuyển của người đó so với tầng 1 là bao nhiêu m?', ans: '6', exp: 'Điểm đầu tầng 1, điểm cuối tầng 3. Cách nhau 2 tầng $\\times$ 3m = 6m.' },
+
+            // Dạng 3: Ghép nối (MATCH)
+            { type: 'MATCH', q: 'Ghép các khái niệm sau với định nghĩa tương ứng của chúng:', pairs: [ { l: 'Độ dịch chuyển', r: 'Đại lượng vectơ nối vị trí đầu và cuối' }, { l: 'Quãng đường', r: 'Chiều dài quỹ đạo chuyển động' }, { l: 'Hệ quy chiếu', r: 'Hệ toạ độ kết hợp mốc thời gian' } ], exp: 'Theo SGK: Độ dịch chuyển là vectơ, Quãng đường là chiều dài quỹ đạo, Hệ quy chiếu dùng để xác định vị trí và thời gian.' },
+            { type: 'MATCH', q: 'Ghép đặc điểm của các đại lượng:', pairs: [ { l: 'Đại lượng vô hướng', r: 'Chỉ có độ lớn, không có hướng' }, { l: 'Đại lượng vectơ', r: 'Có cả độ lớn và hướng' }, { l: 'Giá trị đại số', r: 'Có thể mang dấu dương hoặc âm' } ], exp: 'Vectơ cần hướng và độ lớn. Vô hướng chỉ có độ lớn. Khi gắn vào trục toạ độ, độ dịch chuyển có thể có giá trị đại số âm/dương.' },
+            { type: 'MATCH', q: 'Ghép các biểu thức tính toán phù hợp:', pairs: [ { l: '$d = \\sqrt{d_1^2 + d_2^2}$', r: 'Hai độ dịch chuyển vuông góc' }, { l: '$s = s_1 + s_2$', r: 'Tính tổng quãng đường đi được' }, { l: '$\\Delta x = x_2 - x_1$', r: 'Độ dịch chuyển trên một trục toạ độ' } ], exp: 'Pytago dùng cho tam giác vuông. Quãng đường luôn cộng dồn. $\\Delta x$ là công thức toạ độ trên 1 trục.' },
+            { type: 'MATCH', q: 'Xác định loại chuyển động để so sánh d và s:', pairs: [ { l: 'Chuyển động thẳng, không đổi chiều', r: '$d = s$' }, { l: 'Chuyển động thẳng, có đổi chiều', r: '$d < s$' }, { l: 'Chuyển động khép kín (về chỗ cũ)', r: '$d = 0$' } ], exp: 'Quãng đường là tổng quãng đi, không bao giờ giảm. Độ dịch chuyển tính khoảng cách điểm đầu-cuối.' },
+            { type: 'MATCH', q: 'Ghép phương hướng trên bản đồ địa lí:', pairs: [ { l: 'Phía trên', r: 'Hướng Bắc' }, { l: 'Phía dưới', r: 'Hướng Nam' }, { l: 'Bên phải', r: 'Hướng Đông' } ], exp: 'Quy ước chuẩn trên bản đồ và hệ toạ độ địa lí.' },
+
+            // Dạng 4: Kéo thả (CLICK_TO_MATCH / DRAG_DROP)
+            { type: 'DD', q: 'Hoàn thành câu nhận định sau:', text: 'Độ dịch chuyển là một đại lượng [0], cho biết độ dài và [1] của sự thay đổi vị trí. Trong khi đó, quãng đường là một đại lượng [2] cho biết chiều dài quỹ đạo.', correct: {'0': 'vectơ', '1': 'hướng', '2': 'vô hướng'}, opts: ['vectơ', 'hướng', 'vô hướng', 'âm'], exp: 'Độ dịch chuyển phải có hướng nên là vectơ. Quãng đường chỉ đo độ dài quỹ đạo nên là vô hướng.' },
+            { type: 'DD', q: 'Điền từ vào chỗ trống về Hệ quy chiếu:', text: 'Để xác định vị trí của vật, người ta dùng hệ toạ độ có gốc là vị trí của vật [0]. Bài toán cơ bản của động học là xác định [1] của vật tại các thời điểm khác nhau.', correct: {'0': 'mốc', '1': 'vị trí'}, opts: ['mốc', 'vị trí', 'hướng', 'quãng đường'], exp: 'Theo SGK, gốc toạ độ gắn với vật mốc. Mục tiêu của động học là tìm vị trí theo thời gian.' },
+            { type: 'DD', q: 'Hoàn thành phương pháp cộng vectơ:', text: 'Khi vật chuyển động nhiều giai đoạn, độ dịch chuyển tổng hợp bằng [0] các vectơ độ dịch chuyển thành phần. Nếu vật đi theo hai hướng vuông góc nhau tạo thành tam giác vuông, ta có thể dùng định lí [1] để tính độ lớn.', correct: {'0': 'tổng', '1': 'Pytago'}, opts: ['tổng', 'Pytago', 'hiệu', 'Talet'], exp: 'Độ dịch chuyển tuân theo quy tắc cộng vectơ, dùng Pytago cho các trường hợp vuông góc.' },
+            { type: 'DD', q: 'So sánh d và s:', text: 'Khi vật chuyển động thẳng, không đổi chiều, độ lớn của độ dịch chuyển [0] quãng đường đi được. Nếu vật chuyển động có [1], quãng đường sẽ lớn hơn độ lớn độ dịch chuyển.', correct: {'0': 'bằng', '1': 'đổi chiều'}, opts: ['bằng', 'đổi chiều', 'lớn hơn', 'nhỏ hơn'], exp: 'Chỉ khi không đổi chiều thì $d=s$. Mọi trường hợp đổi chiều hoặc cong thì $s > d$.' },
+            { type: 'DD', q: 'Xác định thời điểm:', text: 'Để xác định [0], người ta phải chọn một mốc thời gian. Mốc thời gian thường được chọn lúc $t_0 = 0$. Khoảng thời gian $\\Delta t$ tính từ lúc [1] đến thời điểm $t$.', correct: {'0': 'thời điểm', '1': 'mốc'}, opts: ['thời điểm', 'mốc', 'toạ độ', 'kết thúc'], exp: 'Thời điểm là một điểm trên trục thời gian, cần so sánh với gốc (mốc thời gian).' }
+        ];
+
+        // --- CẤU TRÚC APP TRẠNG THÁI ---
+        const state = {
+            screen: 'LOGIN', // LOGIN, DASHBOARD, QUIZ, RESULT, TEACHER
+            userType: null, // 'GROUP', 'INDIVIDUAL', 'TEACHER', 'PARENT'
+            userName: '',
+            groupName: '',
+            
+            questions: [], // Câu hỏi đã xáo trộn
+            currentQIndex: 0,
+            score: 0,
+            timeLeft: 30,
+            timerId: null,
+            
+            // Dành cho câu hỏi
+            selectedMcOpt: null,
+            fibAnswer: '',
+            matchLeftSelected: null,
+            matchPairs: {}, // { leftId: rightId }
+            ddActiveSource: null,
+            ddAnswers: {}, // { targetId: {sourceId, text} }
+            
+            isAnswering: true,
+            
+            // Thống kê (lưu localStorage thực tế)
+            history: JSON.parse(localStorage.getItem('physics_history_v1') || '[]')
+        };
+
+        // --- STREAMING_CHUNK: Helper Functions ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function playSound(type) {
+            if (typeof Tone === 'undefined') return;
+            try {
+                if (Tone.context.state !== 'running') Tone.context.resume();
+                const synth = new Tone.Synth().toDestination();
+                if (type === 'correct') {
+                    synth.triggerAttackRelease("C5", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 150);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("G3", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("C3", "4n"), 150);
+                }
+            } catch(e) { console.warn("Lỗi phát âm thanh:", e); }
+        }
+
+        function fireConfetti() {
+            if (typeof confetti !== 'undefined') {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            }
+        }
+
+        function saveHistory() {
+            const record = {
+                type: state.userType,
+                name: state.userType === 'GROUP' ? `Nhóm ${state.groupName}: ${state.userName}` : state.userName,
+                score: state.score,
+                time: (25 * 30) - state.questions.reduce((a, b) => a + (b.timeSpent || 0), 0), // Ước lượng thời gian
+                date: new Date().toLocaleString()
+            };
+            state.history.push(record);
+            localStorage.setItem('physics_history_v1', JSON.stringify(state.history));
+        }
+
+        function renderMath() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([document.getElementById('app-root')]).catch(err => console.log(err));
+            }
+        }
+
+        // --- STREAMING_CHUNK: Modal Logic ---
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+        function showMsg(title, msg) {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-body').innerText = msg;
+            showModal('msg-modal');
+        }
+
+        // --- STREAMING_CHUNK: Core App Logic ---
+        const App = {
+            render() {
+                const root = document.getElementById('app-root');
+                let html = '';
+                
+                if (state.screen === 'LOGIN') html = this.renderLogin();
+                else if (state.screen === 'DASHBOARD') html = this.renderDashboard();
+                else if (state.screen === 'TEACHER') html = this.renderTeacherPanel();
+                else if (state.screen === 'QUIZ') html = this.renderQuiz();
+                else if (state.screen === 'RESULT') html = this.renderResult();
+                
+                html += this.renderModals();
+                root.innerHTML = html;
+                renderMath();
+            },
+
+            // --- GIAO DIỆN LOGIN ---
+            renderLogin() {
+                return `
+                <div class="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white">
+                    <!-- Background decor -->
+                    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+                    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+                    
+                    <div class="z-10 text-center mb-10">
+                        <h1 class="text-5xl font-black mb-4 drop-shadow-lg tracking-tight">VẬT LÍ TƯƠNG TÁC</h1>
+                        <p class="text-xl text-blue-200 font-medium">Chương II - Bài 4: Độ dịch chuyển và Quãng đường</p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl w-full max-w-xl text-slate-800 z-10">
+                        <div class="flex border-b-2 border-slate-200 mb-6">
+                            <button onclick="App.switchTab('GROUP')" class="flex-1 py-3 font-bold text-lg border-b-4 ${state.loginTab !== 'INDIVIDUAL' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}">LÀM THEO NHÓM</button>
+                            <button onclick="App.switchTab('INDIVIDUAL')" class="flex-1 py-3 font-bold text-lg border-b-4 ${state.loginTab === 'INDIVIDUAL' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}">LÀM CÁ NHÂN</button>
+                        </div>
+                        
+                        ${state.loginTab === 'INDIVIDUAL' ? `
+                            <div class="space-y-4">
+                                <div><label class="block font-semibold mb-2">Họ và Tên</label><input type="text" id="login-name" class="w-full p-3 border rounded-xl bg-white" placeholder="Nguyễn Văn A"></div>
+                                <div><label class="block font-semibold mb-2">Mật khẩu</label><input type="password" id="login-pass" class="w-full p-3 border rounded-xl bg-white" placeholder="******"></div>
+                            </div>
+                        ` : `
+                            <div class="space-y-4">
+                                <div><label class="block font-semibold mb-2">Chọn Nhóm</label>
+                                    <select id="login-group" class="w-full p-3 border rounded-xl bg-white">
+                                        ${[...Array(12)].map((_, i) => `<option value="${i+1}">Nhóm ${i+1}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div><label class="block font-semibold mb-2">Tên các thành viên (cách nhau dấu phẩy)</label><input type="text" id="login-members" class="w-full p-3 border rounded-xl bg-white" placeholder="An, Bình, Châu..."></div>
+                            </div>
+                        `}
+                        
+                        <button onclick="App.doLogin()" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition-transform hover:scale-105 shadow-lg">VÀO LÀM BÀI NGAY</button>
+                    </div>
+
+                    <div class="fixed bottom-6 right-6 flex gap-4 z-10">
+                        <button onclick="showModal('teacher-modal')" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-lg font-semibold text-sm border border-slate-600 backdrop-blur">👨‍🏫 Giáo viên</button>
+                        <button onclick="showModal('parent-modal')" class="px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-lg font-semibold text-sm border border-slate-600 backdrop-blur">👨‍👩‍👧 Phụ huynh</button>
+                    </div>
+                </div>
+                `;
+            },
+
+            switchTab(tab) {
+                state.loginTab = tab;
+                this.render();
+            },
+
+            doLogin() {
+                if (state.loginTab === 'INDIVIDUAL') {
+                    const name = document.getElementById('login-name').value.trim();
+                    const pass = document.getElementById('login-pass').value;
+                    if (!name) return showMsg("Lỗi", "Vui lòng nhập Họ Tên!");
+                    if (pass !== '123456') return showMsg("Lỗi", "Sai mật khẩu! (Pass là 123456)");
+                    state.userType = 'INDIVIDUAL';
+                    state.userName = name;
+                } else {
+                    const group = document.getElementById('login-group').value;
+                    const members = document.getElementById('login-members').value.trim();
+                    const memberArr = members.split(',').filter(x => x.trim().length > 0);
+                    if (memberArr.length < 2 || memberArr.length > 4) return showMsg("Lỗi", "Phải nhập từ 2 đến 4 thành viên (ngăn cách bởi dấu phẩy).");
+                    state.userType = 'GROUP';
+                    state.groupName = group;
+                    state.userName = members;
+                }
+                
+                // Chuẩn bị câu hỏi
+                state.questions = shuffleArray(JSON.parse(JSON.stringify(QUESTION_BANK)));
+                // Xáo trộn đáp án cho câu MC
+                state.questions.forEach(q => {
+                    if (q.type === 'MC') {
+                        const originalAns = q.opts[q.ans];
+                        q.opts = shuffleArray([...q.opts]);
+                        q.ans = q.opts.indexOf(originalAns);
+                    }
+                });
+                
+                state.currentQIndex = 0;
+                state.score = 0;
+                state.screen = 'QUIZ';
+                this.initQuestion();
+                this.render();
+            },
+
+            // --- ĐIỀU KHIỂN CÂU HỎI ---
+            initQuestion() {
+                state.isAnswering = true;
+                state.timeLeft = 30;
+                state.selectedMcOpt = null;
+                state.fibAnswer = '';
+                state.matchLeftSelected = null;
+                state.matchPairs = {};
+                state.ddActiveSource = null;
+                state.ddAnswers = {};
+                
+                clearInterval(state.timerId);
+                state.timerId = setInterval(() => {
+                    state.timeLeft--;
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.timerId);
+                        this.checkAnswer(true); // Timeout auto check
+                    } else {
+                        const timerEl = document.getElementById('timer-display');
+                        if (timerEl) {
+                            timerEl.innerText = state.timeLeft;
+                            if(state.timeLeft <= 5) timerEl.classList.add('text-red-500', 'animate-pulse');
+                        }
+                    }
+                }, 1000);
+            },
+
+            renderQuiz() {
+                const q = state.questions[state.currentQIndex];
+                const isLast = state.currentQIndex === state.questions.length - 1;
+                
+                return `
+                <div class="flex-1 flex flex-col p-4 md:p-8 max-w-5xl mx-auto w-full">
+                    
+                    <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm">
+                        <div class="text-lg font-bold text-slate-600">
+                            CÂU ${state.currentQIndex + 1} / ${state.questions.length}
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <div class="font-bold text-blue-600 text-lg">ĐIỂM: <span class="text-2xl">${state.score}</span></div>
+                            <div class="font-bold text-slate-700 bg-slate-100 px-4 py-2 rounded-lg flex items-center gap-2">
+                                ⏱ <span id="timer-display" class="text-2xl font-mono">${state.timeLeft}</span>s
+                            </div>
+                            <button onclick="App.endQuizEarly()" class="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 font-bold rounded-lg transition-colors">Nộp Bài Sớm</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 md:p-10 rounded-2xl shadow-md flex-1 flex flex-col">
+                        <div class="text-2xl md:text-3xl font-semibold mb-8 text-slate-800 leading-relaxed border-l-4 border-blue-500 pl-4">
+                            ${q.q}
+                        </div>
+
+                        ${this.renderQuestionBody(q)}
+
+                        ${!state.isAnswering ? `
+                            <div class="mt-8 p-6 bg-slate-50 border-2 border-slate-200 rounded-xl shadow-inner animate-[fadeIn_0.5s]">
+                                <h4 class="font-bold text-lg mb-2 flex items-center gap-2 uppercase ${state.lastResult ? 'text-green-600' : 'text-red-600'}">
+                                    ${state.lastResult ? '✅ CHÍNH XÁC' : '❌ CHƯA CHÍNH XÁC'}
+                                </h4>
+                                <div class="text-lg text-slate-700 leading-relaxed font-medium">
+                                    <span class="font-bold uppercase text-slate-500 text-sm block mb-1">Giải thích chi tiết:</span>
+                                    ${q.exp}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="mt-auto pt-8 flex justify-end">
+                            ${state.isAnswering 
+                                ? `<button onclick="App.checkAnswer()" class="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xl shadow-lg transition-transform hover:scale-105">CHỐT ĐÁP ÁN</button>`
+                                : `<button onclick="App.nextQuestion()" class="px-10 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xl shadow-lg transition-transform hover:scale-105">${isLast ? 'XEM KẾT QUẢ' : 'CÂU TIẾP THEO ➔'}</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            // --- RENDER TỪNG DẠNG CÂU HỎI ---
+            renderQuestionBody(q) {
+                if (q.type === 'MC') {
+                    return `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${q.opts.map((opt, i) => `
+                                <div onclick="${state.isAnswering ? `App.selectMc(${i})` : ''}" 
+                                     class="p-5 border-2 rounded-xl text-lg font-medium cursor-pointer transition-all flex items-center
+                                     ${state.selectedMcOpt === i 
+                                        ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200' 
+                                        : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'}
+                                     ${!state.isAnswering && i === q.ans ? '!border-green-500 !bg-green-100' : ''}
+                                     ${!state.isAnswering && state.selectedMcOpt === i && i !== q.ans ? '!border-red-500 !bg-red-50' : ''}
+                                     ">
+                                    <span class="w-8 h-8 flex items-center justify-center bg-white border border-slate-300 rounded-full mr-4 font-bold text-slate-500">${String.fromCharCode(65+i)}</span>
+                                    <div class="flex-1">${opt}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (q.type === 'FIB') {
+                    return `
+                        <div class="flex items-center gap-4 text-2xl">
+                            <span class="font-bold text-slate-500">Đáp án:</span>
+                            <input type="text" id="fib-input" value="${state.fibAnswer}" ${!state.isAnswering ? 'disabled' : ''} oninput="App.updateFIB(this.value)" class="p-4 border-b-4 border-blue-500 bg-slate-50 font-bold text-blue-700 text-center w-48 focus:outline-none focus:bg-blue-100 transition-colors">
+                        </div>
+                    `;
+                }
+
+                if (q.type === 'MATCH') {
+                    // Logic xáo trộn nhẹ để render (chỉ làm lần đầu)
+                    if (!q.renderLeft) {
+                        q.renderLeft = q.pairs.map((p, i) => ({text: p.l, id: i}));
+                        q.renderRight = shuffleArray(q.pairs.map((p, i) => ({text: p.r, id: i})));
+                    }
+                    
+                    return `
+                        <div class="flex gap-8 w-full">
+                            <div class="flex-1 flex flex-col gap-3">
+                                ${q.renderLeft.map(item => `
+                                    <div onclick="${state.isAnswering ? `App.clickMatchLeft(${item.id})` : ''}"
+                                         class="p-4 border-2 rounded-xl cursor-pointer transition-all font-medium min-h-[80px] flex items-center shadow-sm
+                                         ${state.matchLeftSelected === item.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-slate-300 bg-white hover:bg-slate-50'}
+                                         ${!state.isAnswering && state.matchPairs[item.id] === item.id ? '!border-green-500 !bg-green-50' : ''}
+                                         ${!state.isAnswering && state.matchPairs[item.id] !== undefined && state.matchPairs[item.id] !== item.id ? '!border-red-500 !bg-red-50' : ''}
+                                         ">
+                                        <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center mr-3 text-sm">${item.id+1}</div>
+                                        <div>${item.text}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex flex-col justify-center gap-3 w-16">
+                                ${q.renderLeft.map(item => {
+                                    const pairedId = state.matchPairs[item.id];
+                                    const pairedLetter = pairedId !== undefined ? String.fromCharCode(65 + q.renderRight.findIndex(r => r.id === pairedId)) : '?';
+                                    return `<div class="h-[80px] flex items-center justify-center font-bold text-2xl text-slate-400"> ${pairedLetter !== '?' ? '➔' : ''} </div>`;
+                                }).join('')}
+                            </div>
+                            <div class="flex-1 flex flex-col gap-3">
+                                ${q.renderRight.map((item, idx) => {
+                                    const isSelected = Object.values(state.matchPairs).includes(item.id);
+                                    return `
+                                    <div onclick="${state.isAnswering ? `App.clickMatchRight(${item.id})` : ''}"
+                                         class="p-4 border-2 rounded-xl cursor-pointer transition-all font-medium min-h-[80px] flex items-center shadow-sm
+                                         ${isSelected ? 'border-indigo-400 bg-indigo-50 opacity-60' : 'border-slate-300 bg-white hover:bg-slate-50'}
+                                         ">
+                                        <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mr-3 text-sm">${String.fromCharCode(65+idx)}</div>
+                                        <div>${item.text}</div>
+                                    </div>
+                                    `
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (q.type === 'DD') {
+                    // Click-to-match logic
+                    if(!q.renderOpts) q.renderOpts = shuffleArray([...q.opts]);
+                    
+                    let formattedText = q.text;
+                    Object.keys(q.correct).forEach(k => {
+                        const ansData = state.ddAnswers[k];
+                        const content = ansData ? ansData.text : '...';
+                        const cls = ansData ? 'filled' : '';
+                        const idStr = `dd-t-${k}`;
+                        // Thay thế cẩn thận để không bị parse nhầm HTML
+                        formattedText = formattedText.replace(`[${k}]`, `<span class="ctm-target ${cls}" data-tid="${k}" onclick="${state.isAnswering ? `App.clickDPTarget('${k}')` : ''}">${content}</span>`);
+                    });
+
+                    return `
+                        <div class="p-6 bg-slate-50 border border-slate-200 rounded-xl text-xl leading-[2.5] mb-8 shadow-inner">
+                            ${formattedText}
+                        </div>
+                        <div class="flex flex-wrap gap-3 p-6 bg-white border-2 border-dashed border-slate-300 rounded-xl justify-center min-h-[100px] items-center">
+                            ${q.renderOpts.map((opt, i) => {
+                                const isUsed = Object.values(state.ddAnswers).some(a => a.idx === i);
+                                const isActive = state.ddActiveSource !== null && state.ddActiveSource.idx === i;
+                                // Escape raw text for attribute
+                                const safeOpt = opt.replace(/"/g, '&quot;');
+                                return `<div class="ctm-source ${isUsed ? 'used' : ''} ${isActive ? 'active' : ''}" data-idx="${i}" data-rawtext="${safeOpt}" onclick="${state.isAnswering ? `App.clickDPSource(this)` : ''}">${opt}</div>`
+                            }).join('')}
+                        </div>
+                    `;
+                }
+            },
+
+            // --- ACTIONS CÂU HỎI ---
+            selectMc(idx) { state.selectedMcOpt = idx; this.render(); },
+            updateFIB(val) { state.fibAnswer = val; },
+            
+            clickMatchLeft(id) { state.matchLeftSelected = id; this.render(); },
+            clickMatchRight(rId) {
+                if (state.matchLeftSelected === null) return showMsg("Chú ý", "Vui lòng chọn một mục ở cột Trái trước!");
+                // Xóa cặp cũ nếu có
+                for (let k in state.matchPairs) { if (state.matchPairs[k] === rId) delete state.matchPairs[k]; }
+                state.matchPairs[state.matchLeftSelected] = rId;
+                state.matchLeftSelected = null;
+                this.render();
+            },
+
+            clickDPSource(el) {
+                if(el.classList.contains('used')) return;
+                state.ddActiveSource = { idx: parseInt(el.dataset.idx), text: el.dataset.rawtext };
+                this.render();
+            },
+            clickDPTarget(tId) {
+                if (!state.ddActiveSource) {
+                    // Trả lại từ
+                    if (state.ddAnswers[tId]) {
+                        delete state.ddAnswers[tId];
+                        this.render();
+                    }
+                    return;
+                }
+                state.ddAnswers[tId] = state.ddActiveSource;
+                state.ddActiveSource = null;
+                this.render();
+            },
+
+            checkAnswer(isTimeout = false) {
+                if (!state.isAnswering) return;
+                clearInterval(state.timerId);
+                state.isAnswering = false;
+                
+                const q = state.questions[state.currentQIndex];
+                let isCorrect = false;
+                
+                if (q.type === 'MC') isCorrect = state.selectedMcOpt === q.ans;
+                if (q.type === 'FIB') isCorrect = state.fibAnswer.toString().trim().replace(',','.') === q.ans;
+                if (q.type === 'MATCH') {
+                    isCorrect = Object.keys(q.pairs).length > 0 && Object.keys(q.pairs).every((_, i) => state.matchPairs[i] === i);
+                }
+                if (q.type === 'DD') {
+                    isCorrect = Object.keys(q.correct).length > 0 && Object.keys(q.correct).every(k => state.ddAnswers[k] && state.ddAnswers[k].text === q.correct[k]);
+                }
+
+                if (isTimeout) isCorrect = false; // Hết giờ = Sai
+                
+                state.lastResult = isCorrect;
+                if (isCorrect) {
+                    state.score++;
+                    playSound('correct');
+                } else {
+                    playSound('wrong');
+                }
+                
+                this.render();
+            },
+
+            nextQuestion() {
+                if (state.currentQIndex < state.questions.length - 1) {
+                    state.currentQIndex++;
+                    this.initQuestion();
+                    this.render();
+                } else {
+                    this.endQuiz();
+                }
+            },
+
+            endQuizEarly() {
+                clearInterval(state.timerId);
+                this.endQuiz();
+            },
+
+            endQuiz() {
+                saveHistory();
+                state.screen = 'RESULT';
+                if (state.score >= 20) fireConfetti();
+                this.render();
+            },
+
+            // --- MÀN HÌNH KẾT QUẢ ---
+            renderResult() {
+                let msg = state.score >= 20 ? "🎉 XUẤT SẮC! BẠN NẮM RẤT VỮNG KIẾN THỨC!" : (state.score >= 12 ? "👏 KHÁ TỐT! CỐ GẮNG HƠN NỮA NHÉ!" : "⚠️ CẦN XEM KĨ LẠI LÝ THUYẾT TRONG SGK!");
+                
+                return `
+                <div class="flex-1 flex items-center justify-center p-4 bg-slate-900 text-white">
+                    <div class="bg-slate-800 p-10 rounded-3xl shadow-2xl text-center max-w-2xl w-full border border-slate-700">
+                        <h2 class="text-4xl font-black text-yellow-400 mb-4 uppercase">Hoàn thành bài tập</h2>
+                        <div class="text-xl text-slate-300 mb-8">${state.userType === 'GROUP' ? `Nhóm ${state.groupName}` : state.userName}</div>
+                        
+                        <div class="flex justify-center gap-12 mb-10">
+                            <div class="text-center">
+                                <div class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">ĐIỂM SỐ</div>
+                                <div class="text-7xl font-black ${state.score >= 20 ? 'text-green-400' : 'text-blue-400'}">${state.score}<span class="text-3xl text-slate-500">/25</span></div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-slate-900/50 rounded-xl border border-slate-600 mb-8">
+                            <div class="text-2xl font-semibold">${msg}</div>
+                        </div>
+
+                        <button onclick="location.reload()" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-xl transition-all shadow-lg">VỀ TRANG CHỦ / LÀM LẠI</button>
+                    </div>
+                </div>
+                `;
+            },
+
+            // --- BẢNG ĐIỀU KHIỂN GIÁO VIÊN/PHỤ HUYNH ---
+            loginTeacher() {
+                const pass = document.getElementById('teacher-pass').value;
+                if (pass === '123') {
+                    hideModal('teacher-modal');
+                    state.screen = 'TEACHER';
+                    state.teacherTab = 'GROUP'; // Mặc định
+                    this.render();
+                } else showMsg("Lỗi", "Sai mật khẩu Giáo viên!");
+            },
+            
+            loginParent() {
+                const pass = document.getElementById('parent-pass').value;
+                if (pass === '123456') {
+                    hideModal('parent-modal');
+                    state.screen = 'TEACHER';
+                    state.teacherTab = 'INDIVIDUAL'; // Phụ huynh chỉ xem tab này
+                    state.isParent = true;
+                    this.render();
+                } else showMsg("Lỗi", "Sai mật khẩu Phụ huynh!");
+            },
+
+            renderTeacherPanel() {
+                const isParent = state.isParent;
+                const history = state.history || [];
+                const groups = history.filter(x => x.type === 'GROUP').sort((a,b) => b.score - a.score || a.time - b.time);
+                const individuals = history.filter(x => x.type === 'INDIVIDUAL').sort((a,b) => b.score - a.score || a.time - b.time);
+
+                return `
+                <div class="min-h-screen bg-slate-100 p-8">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-3xl font-black text-slate-800">${isParent ? 'BẢNG KẾT QUẢ HỌC TẬP' : '👨‍🏫 BẢNG ĐIỀU KHIỂN GIÁO VIÊN'}</h2>
+                            <button onclick="location.reload()" class="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700">Thoát</button>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+                            <div class="flex bg-slate-50 border-b border-slate-200">
+                                ${!isParent ? `<button onclick="App.switchTTab('GROUP')" class="flex-1 py-4 font-bold ${state.teacherTab==='GROUP'?'text-blue-600 bg-white border-t-4 border-t-blue-600':'text-slate-500'}">THỐNG KÊ NHÓM</button>` : ''}
+                                <button onclick="App.switchTTab('INDIVIDUAL')" class="flex-1 py-4 font-bold ${state.teacherTab==='INDIVIDUAL'?'text-blue-600 bg-white border-t-4 border-t-blue-600':'text-slate-500'}">THỐNG KÊ CÁ NHÂN</button>
+                                ${!isParent ? `<button onclick="App.switchTTab('DE')" class="flex-1 py-4 font-bold ${state.teacherTab==='DE'?'text-blue-600 bg-white border-t-4 border-t-blue-600':'text-slate-500'}">XEM TOÀN BỘ ĐỀ & ĐÁP ÁN</button>` : ''}
+                            </div>
+                            
+                            <div class="p-8">
+                                ${state.teacherTab === 'GROUP' || state.teacherTab === 'INDIVIDUAL' ? `
+                                    <table class="w-full text-left border-collapse">
+                                        <thead><tr class="bg-slate-100"><th class="p-4 font-bold rounded-tl-lg">Hạng</th><th class="p-4 font-bold">Tên / Thành viên</th><th class="p-4 font-bold">Điểm</th><th class="p-4 font-bold">Thời gian nộp</th></tr></thead>
+                                        <tbody>
+                                            ${(state.teacherTab === 'GROUP' ? groups : individuals).map((h, i) => `
+                                                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                                    <td class="p-4 font-bold text-slate-500">#${i+1}</td>
+                                                    <td class="p-4 font-semibold text-blue-700">${h.name}</td>
+                                                    <td class="p-4 font-black text-lg">${h.score}/25</td>
+                                                    <td class="p-4 text-sm text-slate-500">${h.date}</td>
+                                                </tr>
+                                            `).join('')}
+                                            ${(state.teacherTab === 'GROUP' ? groups : individuals).length === 0 ? `<tr><td colspan="4" class="p-8 text-center text-slate-400">Chưa có dữ liệu.</td></tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                ` : ''}
+
+                                ${state.teacherTab === 'DE' ? `
+                                    <div class="space-y-8">
+                                        ${QUESTION_BANK.map((q, i) => `
+                                            <div class="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                                                <div class="font-bold text-lg mb-2">Câu ${i+1}: ${q.q}</div>
+                                                ${q.type === 'MC' ? `<div class="mb-2 text-slate-600">Các phương án: ${q.opts.join(' | ')}</div><div class="font-semibold text-green-600">Đáp án: ${q.opts[q.ans]}</div>` : ''}
+                                                ${q.type === 'FIB' ? `<div class="font-semibold text-green-600">Đáp án: ${q.ans}</div>` : ''}
+                                                ${q.type === 'MATCH' ? `<div class="font-semibold text-green-600">Ghép đúng: <ul class="list-disc ml-5">${q.pairs.map(p => `<li>${p.l} ➔ ${p.r}</li>`).join('')}</ul></div>` : ''}
+                                                ${q.type === 'DD' ? `<div class="mb-2 text-slate-600">Đoạn văn: ${q.text}</div><div class="font-semibold text-green-600">Điền: ${JSON.stringify(q.correct)}</div>` : ''}
+                                                <div class="mt-4 p-4 bg-blue-50 text-blue-800 text-sm rounded-lg"><strong>Giải thích:</strong> ${q.exp}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+            
+            switchTTab(tab) { state.teacherTab = tab; this.render(); },
+
+            // --- CHUNG ---
+            renderModals() {
+                return `
+                <!-- Teacher Modal -->
+                <div id="teacher-modal" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200">
+                        <h3 class="text-2xl font-black mb-4 text-slate-800">GIÁO VIÊN ĐĂNG NHẬP</h3>
+                        <input type="password" id="teacher-pass" class="w-full p-3 border-2 border-slate-300 rounded-xl mb-6 bg-slate-50 focus:border-blue-500 focus:outline-none" placeholder="Nhập mật khẩu">
+                        <div class="flex gap-3">
+                            <button onclick="hideModal('teacher-modal')" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 font-bold rounded-xl text-slate-700 transition-colors">Hủy</button>
+                            <button onclick="App.loginTeacher()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-white transition-colors">Vào</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parent Modal -->
+                <div id="parent-modal" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200">
+                        <h3 class="text-2xl font-black mb-4 text-slate-800">PHỤ HUYNH ĐĂNG NHẬP</h3>
+                        <input type="password" id="parent-pass" class="w-full p-3 border-2 border-slate-300 rounded-xl mb-6 bg-slate-50 focus:border-blue-500 focus:outline-none" placeholder="Nhập mật khẩu">
+                        <div class="flex gap-3">
+                            <button onclick="hideModal('parent-modal')" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 font-bold rounded-xl text-slate-700 transition-colors">Hủy</button>
+                            <button onclick="App.loginParent()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl text-white transition-colors">Vào</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Modal -->
+                <div id="msg-modal" class="modal-overlay" style="z-index: 99999;">
+                    <div class="modal-content bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full border-t-8 border-t-blue-500 text-center">
+                        <h3 id="msg-title" class="text-2xl font-black mb-2 text-slate-800">Thông báo</h3>
+                        <p id="msg-body" class="text-slate-600 mb-6 leading-relaxed font-medium"></p>
+                        <button onclick="hideModal('msg-modal')" class="w-full py-3 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-white transition-colors">Đã hiểu</button>
+                    </div>
+                </div>
+                `;
+            }
+        };
+
+        // Gắn vào window để gọi từ HTML
+        window.App = App;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+
+        // Khởi động
+        window.onload = () => App.render();
+    </script>
+</body>
+</html>

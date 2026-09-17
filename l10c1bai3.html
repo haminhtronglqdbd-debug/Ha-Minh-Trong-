@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Tương Tác: Sai Số Trong Phép Đo</title>
+    
+    <!-- Tối ưu 1: Cấu hình MathJax trước khi tải, chặn quét toàn trang tự động để giảm lag -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' },
+            startup: { typeset: false } // Chặn tự động quét lúc mới tải
+        };
+    </script>
+    
+    <!-- Tối ưu 2: Dùng engine SVG (tex-mml-svg.js) thay vì CHTML giúp vẽ công thức cực nhanh -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+
+    <!-- Tailwind CSS (Bắt buộc dùng CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tối ưu 3: Dùng thẻ defer để tải ngầm âm thanh và hiệu ứng, không chặn hiển thị trang -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/1.4.8/Tone.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4;
+            color: #1f2937;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        /* Hộp thả (Dropzone) và Vật kéo (Draggable) */
+        .dropzone {
+            display: inline-block;
+            min-width: 100px;
+            height: 36px;
+            border: 2px dashed #9ca3af;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            vertical-align: middle;
+            margin: 0 5px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .dropzone.highlight {
+            border-color: #f59e0b;
+            background-color: #fef3c7;
+        }
+        .dropzone.filled {
+            border: 2px solid #3b82f6;
+            background-color: white;
+        }
+        
+        .draggable {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 5px;
+            background-color: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .draggable:hover {
+            background-color: #dbeafe;
+            transform: translateY(-2px);
+        }
+        .draggable.selected-to-drop {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        /* CHỐNG LỖI CLICK VÀO CÔNG THỨC KHI KÉO THẢ */
+        .draggable * {
+            pointer-events: none;
+        }
+
+        /* Tùy chỉnh thanh tiến trình */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 999px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+        .timer-bar {
+            height: 4px;
+            background-color: #ef4444;
+            transition: width 1s linear;
+        }
+
+        /* Modal Custom */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Bảng Teacher */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        th { background-color: #f9fafb; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex items-center justify-center">
+
+    <div id="app" class="w-full max-w-4xl glass-panel rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+        
+        <!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
+        <div id="login-screen" class="screen active text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-700 mb-2">BÀI TẬP TƯƠNG TÁC</h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-gray-600 mb-6">Sai Số Trong Phép Đo</h2>
+            
+            <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-6 text-sm md:text-base text-left max-w-lg mx-auto shadow-sm">
+                <p class="font-bold mb-2 text-lg text-blue-900 border-b border-blue-200 pb-2">📋 THÔNG TIN & THỂ LỆ LÀM BÀI:</p>
+                <ul class="list-none space-y-2 mt-3">
+                    <li class="flex items-start"><span class="mr-2">🎯</span> <span><b>Tổng số câu hỏi:</b> 25 câu (Trắc nghiệm, Điền từ, Kéo thả ghép nối).</span></li>
+                    <li class="flex items-start"><span class="mr-2">⭐</span> <span><b>Điểm số:</b> Mỗi câu đúng đạt 1 điểm. Tổng 25 điểm.</span></li>
+                    <li class="flex items-start"><span class="mr-2">⏱️</span> <span><b>Thời gian giới hạn:</b> Tối đa <b>30 giây/câu</b>. Hết thời gian sẽ tự động chuyển qua câu mới và không được tính điểm câu đó.</span></li>
+                    <li class="flex items-start"><span class="mr-2">⚡</span> <span><b>Chuyển câu:</b> Nhóm có thể chủ động chuyển câu nếu trả lời xong sớm.</span></li>
+                    <li class="flex items-start"><span class="mr-2">🏁</span> <span><b>Nộp bài sớm:</b> Nhóm có thể nộp bài kết thúc sớm bất cứ lúc nào.</span></li>
+                </ul>
+            </div>
+
+            <div class="max-w-md mx-auto bg-white p-6 rounded-xl border shadow-sm">
+                <div id="login-error" class="hidden mb-4 bg-red-100 text-red-700 p-3 rounded-lg text-sm font-medium border border-red-200 transition-all"></div>
+                
+                <div class="mb-4 text-left">
+                    <label class="block text-gray-700 font-semibold mb-2">Chọn Nhóm:</label>
+                    <select id="group-select" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                        <option value="">-- Click để chọn nhóm --</option>
+                        <option value="Nhóm 1">Nhóm 1</option><option value="Nhóm 2">Nhóm 2</option>
+                        <option value="Nhóm 3">Nhóm 3</option><option value="Nhóm 4">Nhóm 4</option>
+                        <option value="Nhóm 5">Nhóm 5</option><option value="Nhóm 6">Nhóm 6</option>
+                        <option value="Nhóm 7">Nhóm 7</option><option value="Nhóm 8">Nhóm 8</option>
+                        <option value="Nhóm 9">Nhóm 9</option><option value="Nhóm 10">Nhóm 10</option>
+                        <option value="Nhóm 11">Nhóm 11</option><option value="Nhóm 12">Nhóm 12</option>
+                    </select>
+                </div>
+
+                <div class="mb-6 text-left">
+                    <label class="block text-gray-700 font-semibold mb-2">Tên các thành viên (Tối đa 4):</label>
+                    <input type="text" id="member-names" placeholder="VD: An, Bình, Châu, Dũng" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+
+                <button onclick="startQuiz()" class="btn-primary w-full py-3 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl">🚀 Bắt Đầu Làm Bài</button>
+            </div>
+            
+            <button onclick="showTeacherLogin()" class="mt-8 text-gray-500 hover:text-gray-800 text-sm font-medium underline transition">Giáo viên đăng nhập</button>
+        </div>
+
+        <!-- ================= MÀN HÌNH LÀM BÀI ================= -->
+        <div id="quiz-screen" class="screen">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 pb-4 border-b">
+                <div class="font-bold text-lg text-blue-800 bg-blue-100 px-4 py-1 rounded-full" id="quiz-group-name">Nhóm 1</div>
+                <div class="font-bold text-xl text-gray-700 my-2 md:my-0 bg-gray-100 px-4 py-1 rounded-lg border">Câu <span id="current-q-num" class="text-blue-600">1</span> / <span id="total-q-num">25</span></div>
+                <div class="font-bold text-xl text-red-600 bg-red-50 px-4 py-1 rounded-full border border-red-200 shadow-sm flex items-center gap-2">
+                    ⏱ <span id="timer-display">30</span>s
+                </div>
+            </div>
+            
+            <!-- Tiến trình -->
+            <div class="progress-bar-container mb-2">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="w-full bg-gray-200 h-1.5 mb-6 rounded-full overflow-hidden">
+                <div id="timer-bar" class="timer-bar w-full"></div>
+            </div>
+
+            <!-- Vùng câu hỏi -->
+            <div id="question-container" class="mb-8 min-h-[250px] transition-all">
+                <!-- Nội dung câu hỏi sinh động bằng JS -->
+            </div>
+
+            <!-- Vùng phản hồi -->
+            <div id="feedback-container" class="hidden mb-6 p-5 rounded-xl font-medium shadow-sm transition-all duration-300"></div>
+
+            <!-- Điều hướng -->
+            <div class="flex flex-col-reverse md:flex-row justify-between items-center gap-4 mt-6">
+                <button onclick="confirmEarlySubmit()" class="btn-danger w-full md:w-auto px-6 py-3 rounded-lg font-bold flex justify-center items-center gap-2 shadow-md hover:shadow-lg">
+                    🏁 Nộp Bài Báo Cáo
+                </button>
+                
+                <button id="btn-next" onclick="nextQuestion()" class="btn-primary w-full md:w-auto px-8 py-3 rounded-lg font-bold text-lg hidden flex justify-center items-center gap-2 shadow-md hover:shadow-lg">
+                    Câu Tiếp Theo ⏭
+                </button>
+                <button id="btn-check" onclick="checkAnswer()" class="btn-success w-full md:w-auto px-8 py-3 rounded-lg font-bold text-lg flex justify-center items-center gap-2 shadow-md hover:shadow-lg">
+                    Chốt Đáp Án ✔️
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= MÀN HÌNH KẾT QUẢ ================= -->
+        <div id="result-screen" class="screen text-center py-10">
+            <h2 class="text-3xl font-bold text-blue-800 mb-6">Đã Nộp Bài Thành Công!</h2>
+            <div class="inline-block bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mb-8 transform transition-transform hover:scale-105">
+                <p class="text-gray-600 font-bold mb-2 text-xl" id="result-group">Nhóm 1</p>
+                <p class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500 mb-2" id="result-score">20 / 25</p>
+                <p class="text-gray-500 font-medium">Tổng thời gian: <span id="result-time" class="font-bold text-gray-700">00:00</span></p>
+            </div>
+            <p id="result-message" class="text-xl md:text-2xl font-bold mb-8 px-4"></p>
+            <button onclick="location.reload()" class="btn-primary px-8 py-3 rounded-lg font-bold text-lg shadow-lg">Trở Về Màn Hình Chính</button>
+        </div>
+
+        <!-- ================= MÀN HÌNH GIÁO VIÊN ================= -->
+        <div id="teacher-screen" class="screen">
+            <div class="flex justify-between items-center mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h2 class="text-2xl font-bold text-blue-800 flex items-center gap-2">👨‍🏫 Bảng Điều Khiển Giáo Viên</h2>
+                <button onclick="location.reload()" class="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-bold shadow-sm transition">Đóng & Thoát</button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex border-b mb-6">
+                <button onclick="switchTeacherTab('leaderboard')" id="tab-leaderboard" class="px-6 py-3 font-bold text-blue-600 border-b-4 border-blue-600 hover:bg-blue-50 transition">🏆 Bảng Xếp Hạng Lớp</button>
+                <button onclick="switchTeacherTab('questions')" id="tab-questions" class="px-6 py-3 font-bold text-gray-500 border-b-4 border-transparent hover:bg-gray-50 hover:text-blue-600 transition">📚 Xem Đề & Đáp Án</button>
+            </div>
+
+            <!-- Tab Content: Leaderboard -->
+            <div id="view-leaderboard">
+                <div class="overflow-x-auto shadow-sm rounded-lg border">
+                    <table class="w-full text-sm text-left text-gray-600">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th class="text-center py-4">Xếp Hạng</th>
+                                <th class="py-4">Tên Nhóm</th>
+                                <th class="py-4">Thành Viên</th>
+                                <th class="text-center py-4">Điểm Số</th>
+                                <th class="text-center py-4">Thời Gian</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <!-- Dữ liệu nhóm sinh ra ở đây -->
+                        </tbody>
+                    </table>
+                    <div id="empty-leaderboard" class="text-center py-10 text-gray-500 font-medium hidden">
+                        Chưa có nhóm nào nộp bài. Dữ liệu nộp bài của học sinh sẽ tự động hiện ở đây.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Questions Review -->
+            <div id="view-questions" class="hidden">
+                <div id="questions-list-container" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                    <!-- Danh sách câu hỏi sinh ra ở đây -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Thông Báo Chung -->
+    <div id="alert-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div id="alert-icon" class="text-5xl mb-4">⚠️</div>
+            <h3 id="alert-title" class="text-2xl font-bold mb-2 text-gray-800">Thông Báo</h3>
+            <p id="alert-message" class="text-gray-600 mb-6 font-medium text-lg"></p>
+            <button onclick="closeAlert()" class="btn-primary px-6 py-3 rounded-lg font-bold w-full text-lg shadow-md">Đã Hiểu</button>
+        </div>
+    </div>
+
+    <!-- Modal Xác Nhận Nộp Bài -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div class="text-6xl mb-4 text-yellow-500">🏁</div>
+            <h3 class="text-2xl font-bold mb-3 text-gray-800">Xác Nhận Nộp Bài</h3>
+            <p class="text-gray-600 mb-6 font-medium">Bạn có chắc chắn muốn nộp bài sớm không? Những câu chưa làm sẽ <b class="text-red-500">không có điểm</b>.</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="closeConfirm()" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-bold flex-1 hover:bg-gray-300 transition shadow-sm">Hủy Bỏ</button>
+                <button onclick="forceSubmitQuiz()" class="btn-danger px-6 py-3 rounded-lg font-bold flex-1 shadow-md hover:shadow-lg">Nộp Luôn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Giáo Viên Đăng Nhập -->
+    <div id="teacher-login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="text-4xl text-center mb-3">👨‍🏫</div>
+            <h3 class="text-2xl font-bold mb-2 text-center text-blue-800">Khu Vực Giáo Viên</h3>
+            <p class="text-sm text-gray-500 mb-5 text-center font-medium">Vui lòng nhập mật khẩu quản lý để xem kết quả.</p>
+            <input type="password" id="teacher-pwd" placeholder="Nhập mật khẩu..." class="w-full px-4 py-3 border-2 rounded-lg mb-2 focus:outline-none focus:border-blue-500 bg-gray-50 font-medium" onkeypress="if(event.key === 'Enter') checkTeacherLogin()">
+            <p id="teacher-err" class="text-red-500 text-sm font-bold mb-4 h-5 text-center"></p>
+            <div class="flex gap-3">
+                <button onclick="closeTeacherLogin()" class="px-4 py-3 bg-gray-200 text-gray-800 rounded-lg font-bold flex-1 hover:bg-gray-300 transition">Đóng</button>
+                <button onclick="checkTeacherLogin()" class="btn-primary px-4 py-3 rounded-lg font-bold flex-1 shadow-md">Đăng Nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questionsData = [
+            // MCQ (Trắc nghiệm)
+            {
+                type: 'mcq',
+                question: 'Đo trực tiếp một đại lượng bằng dụng cụ đo, kết quả được đọc trực tiếp trên dụng cụ đo được gọi là gì?',
+                options: ['Phép đo trực tiếp', 'Phép đo gián tiếp', 'Phép đo tương đối', 'Phép đo tuyệt đối'],
+                correct: 'Phép đo trực tiếp',
+                rationale: 'Theo định nghĩa SGK, đọc trực tiếp trên dụng cụ là phép đo trực tiếp.'
+            },
+            {
+                type: 'mcq',
+                question: 'Phép đo một đại lượng không trực tiếp mà thông qua công thức liên hệ với các đại lượng có thể đo trực tiếp gọi là:',
+                options: ['Phép đo gián tiếp', 'Phép đo trực tiếp', 'Phép đo ước lượng', 'Phép đo dụng cụ'],
+                correct: 'Phép đo gián tiếp',
+                rationale: 'Đo thông qua công thức liên hệ là phép đo gián tiếp.'
+            },
+            {
+                type: 'mcq',
+                question: 'Sự sai lệch do đặc điểm và cấu tạo của dụng cụ gây ra gọi là:',
+                options: ['Sai số hệ thống (sai số dụng cụ)', 'Sai số ngẫu nhiên', 'Sai số tuyệt đối', 'Sai số tỉ đối'],
+                correct: 'Sai số hệ thống (sai số dụng cụ)',
+                rationale: 'Sai số do cấu tạo dụng cụ là nguyên nhân khách quan, gọi là sai số hệ thống.'
+            },
+            {
+                type: 'mcq',
+                question: 'Nguyên nhân nào KHÔNG gây ra sai số ngẫu nhiên?',
+                options: ['Cấu tạo của dụng cụ đo', 'Thao tác đo không chuẩn', 'Điều kiện làm thí nghiệm không ổn định', 'Hạn chế về giác quan của người đo'],
+                correct: 'Cấu tạo của dụng cụ đo',
+                rationale: 'Cấu tạo dụng cụ gây ra sai số hệ thống, không phải sai số ngẫu nhiên.'
+            },
+            {
+                type: 'mcq',
+                question: 'Để khắc phục sai số ngẫu nhiên, người ta thường tiến hành biện pháp gì?',
+                options: ['Đo nhiều lần và tính giá trị trung bình', 'Hiệu chỉnh lại dụng cụ đo', 'Chỉ đo 1 lần cho chính xác', 'Thay người đo khác'],
+                correct: 'Đo nhiều lần và tính giá trị trung bình',
+                rationale: 'Tiến hành thí nghiệm nhiều lần và tính trung bình giúp loại trừ bớt sai số ngẫu nhiên.'
+            },
+            {
+                type: 'mcq',
+                question: 'Sai số tuyệt đối của phép đo là tổng của:',
+                options: ['Sai số ngẫu nhiên và sai số dụng cụ', 'Sai số tỉ đối và sai số dụng cụ', 'Sai số hệ thống và sai số tỉ đối', 'Giá trị trung bình và sai số ngẫu nhiên'],
+                correct: 'Sai số ngẫu nhiên và sai số dụng cụ',
+                rationale: 'Công thức: $\\Delta A = \\overline{\\Delta A} + \\Delta A_{dc}$'
+            },
+            {
+                type: 'mcq',
+                question: 'Sai số dụng cụ thường được lấy bằng bao nhiêu nếu nhà sản xuất không xác định?',
+                options: ['Một nửa hoặc một độ chia nhỏ nhất (ĐCNN)', 'Một phần mười độ chia nhỏ nhất', 'Giá trị trung bình của các lần đo', 'Bằng 0'],
+                correct: 'Một nửa hoặc một độ chia nhỏ nhất (ĐCNN)',
+                rationale: 'Theo quy ước, sai số dụng cụ lấy bằng 1/2 hoặc 1 ĐCNN.'
+            },
+            {
+                type: 'mcq',
+                question: 'Sai số tỉ đối $\\delta A$ của phép đo cho biết điều gì?',
+                options: ['Mức độ chính xác của phép đo', 'Giá trị trung bình của phép đo', 'Sai số của dụng cụ đo', 'Nguyên nhân gây ra sai số'],
+                correct: 'Mức độ chính xác của phép đo',
+                rationale: 'Sai số tỉ đối $\\delta A = \\frac{\\Delta A}{\\overline{A}} \\cdot 100\\%$ thể hiện mức độ chính xác. $\\delta A$ càng nhỏ, phép đo càng chính xác.'
+            },
+            {
+                type: 'mcq',
+                question: 'Công thức tính sai số tuyệt đối của một tổng $A = B + C$ là:',
+                options: ['$\\Delta A = \\Delta B + \\Delta C$', '$\\Delta A = \\Delta B - \\Delta C$', '$\\Delta A = \\Delta B \\cdot \\Delta C$', '$\\delta A = \\delta B + \\delta C$'],
+                correct: '$\\Delta A = \\Delta B + \\Delta C$',
+                rationale: 'Sai số tuyệt đối của một tổng bằng tổng các sai số tuyệt đối.'
+            },
+            {
+                type: 'mcq',
+                question: 'Nếu đại lượng cần đo được tính bằng công thức $A = B \\cdot C$, sai số tỉ đối $\\delta A$ được tính bằng:',
+                options: ['$\\delta A = \\delta B + \\delta C$', '$\\Delta A = \\Delta B + \\Delta C$', '$\\delta A = \\delta B \\cdot \\delta C$', '$\\delta A = \\delta B - \\delta C$'],
+                correct: '$\\delta A = \\delta B + \\delta C$',
+                rationale: 'Sai số tỉ đối của một tích bằng tổng sai số tỉ đối của các thừa số.'
+            },
+            {
+                type: 'mcq',
+                question: 'Đo tốc độ $v = \\frac{s}{t}$, công thức tính sai số tỉ đối $\\delta v$ là:',
+                options: ['$\\delta v = \\frac{\\Delta s}{\\overline{s}} \\cdot 100\\% + \\frac{\\Delta t}{\\overline{t}} \\cdot 100\\%$', '$\\delta v = \\frac{\\Delta s}{\\overline{s}} \\cdot 100\\% - \\frac{\\Delta t}{\\overline{t}} \\cdot 100\\%$', '$\\Delta v = \\Delta s + \\Delta t$', '$\\Delta v = \\Delta s - \\Delta t$'],
+                correct: '$\\delta v = \\frac{\\Delta s}{\\overline{s}} \\cdot 100\\% + \\frac{\\Delta t}{\\overline{t}} \\cdot 100\\%$',
+                rationale: 'Tốc độ là một thương số, nên sai số tỉ đối bằng tổng sai số tỉ đối của s và t.'
+            },
+            {
+                type: 'mcq',
+                question: 'Đo vận tốc xe đồ chơi bằng thước và đồng hồ bấm giây. Đây là phép đo gì?',
+                options: ['Phép đo gián tiếp', 'Phép đo trực tiếp', 'Cả trực tiếp và gián tiếp', 'Không xác định được'],
+                correct: 'Phép đo gián tiếp',
+                rationale: 'Vì tốc độ v tính qua công thức v=s/t chứ không đọc trực tiếp trên dụng cụ đo tốc độ.'
+            },
+            {
+                type: 'mcq',
+                question: 'Kết quả đo đại lượng A được ghi dưới dạng chuẩn nào?',
+                options: ['$A = \\overline{A} \\pm \\Delta A$', '$A = \\Delta A \\pm \\overline{A}$', '$A = \\overline{A} + \\Delta A$', '$A = \\Delta A - \\overline{A}$'],
+                correct: '$A = \\overline{A} \\pm \\Delta A$',
+                rationale: 'Dạng chuẩn là giá trị trung bình cộng trừ sai số tuyệt đối.'
+            },
+            {
+                type: 'mcq',
+                question: 'Theo quy tắc làm tròn số, nếu chữ số ở hàng bỏ đi nhỏ hơn 5 thì chữ số bên trái nó sẽ:',
+                options: ['Giữ nguyên', 'Tăng thêm 1 đơn vị', 'Giảm đi 1 đơn vị', 'Biến thành số 0'],
+                correct: 'Giữ nguyên',
+                rationale: 'Nhỏ hơn 5 thì làm tròn xuống (giữ nguyên).'
+            },
+            {
+                type: 'mcq',
+                question: 'Khi biểu diễn sai số trên đồ thị, mỗi giá trị đo thực nghiệm được vẽ kèm theo:',
+                options: ['Một ô chữ nhật sai số có cạnh $2\\Delta x$ và $2\\Delta y$', 'Một hình tròn bán kính $\\Delta x$', 'Một đường thẳng', 'Chỉ vẽ một điểm chấm nhỏ'],
+                correct: 'Một ô chữ nhật sai số có cạnh $2\\Delta x$ và $2\\Delta y$',
+                rationale: 'Mỗi điểm thực nghiệm luôn kèm theo sai số $\\pm\\Delta x$ và $\\pm\\Delta y$ tạo thành ô chữ nhật.'
+            },
+            
+            // True/False
+            {
+                type: 'mcq',
+                question: 'Nhận định sau Đúng hay Sai: Sai số hệ thống có thể loại bỏ hoàn toàn nếu ta đo rất nhiều lần.',
+                options: ['Sai', 'Đúng'],
+                correct: 'Sai',
+                rationale: 'Đo nhiều lần chỉ giảm sai số ngẫu nhiên. Sai số hệ thống do cấu tạo dụng cụ thì luôn tồn tại.'
+            },
+            {
+                type: 'mcq',
+                question: 'Nhận định sau Đúng hay Sai: Nếu đại lượng $A = B \\cdot \\sqrt{C}$ thì sai số tỉ đối là $\\delta A = \\delta B + \\frac{1}{2}\\delta C$',
+                options: ['Đúng', 'Sai'],
+                correct: 'Đúng',
+                rationale: 'Sai số tỉ đối của luỹ thừa bậc n là n lần sai số tỉ đối. C mũ 1/2 nên sai số là $\\frac{1}{2}\\delta C$.'
+            },
+            
+            // Fill in the blanks
+            {
+                type: 'fill',
+                question: 'Điền TỪ CÒN THIẾU vào chỗ trống (chữ thường): Phép đo trực tiếp một đại lượng bằng dụng cụ đo, kết quả được đọc ____________ trên dụng cụ đo.',
+                correct: 'trực tiếp',
+                rationale: 'Đọc trực tiếp trên dụng cụ là đặc trưng của phép đo trực tiếp.'
+            },
+            {
+                type: 'fill',
+                question: 'Điền TỪ CÒN THIẾU vào chỗ trống (chữ thường): Sai số tuyệt đối của phép đo là tổng sai số _____________ và sai số dụng cụ.',
+                correct: 'ngẫu nhiên',
+                rationale: '$\\Delta A = \\overline{\\Delta A} (ngẫu nhiên) + \\Delta A_{dc} (dụng cụ)$'
+            },
+            {
+                type: 'fill',
+                question: 'Điền TỪ CÒN THIẾU vào chỗ trống (chữ thường): Để đánh giá mức độ chính xác của phép đo, người ta dùng sai số _________',
+                correct: 'tỉ đối',
+                rationale: 'Sai số tỉ đối $\\delta A$ cho biết tỉ lệ phần trăm sai số, thể hiện độ chính xác.'
+            },
+            
+            // Drag-drop-fill
+            {
+                type: 'drag-drop-fill',
+                question: 'Kéo thả các từ thích hợp vào chỗ trống liên quan đến nguyên nhân sai số:<br><br>Sai số [1] có nguyên nhân khách quan do [2] gây ra. Sai số [3] do thao tác không chuẩn hoặc điều kiện hạn chế.',
+                options: ['hệ thống', 'dụng cụ', 'ngẫu nhiên'],
+                answers: { '1': 'hệ thống', '2': 'dụng cụ', '3': 'ngẫu nhiên' },
+                rationale: 'Sai số hệ thống do dụng cụ (khách quan). Sai số ngẫu nhiên do thao tác (chủ quan).'
+            },
+            {
+                type: 'drag-drop-fill',
+                question: 'Kéo thả từ thích hợp về định nghĩa phép đo:<br><br>Đo một đại lượng không trực tiếp mà thông qua [1] liên hệ với các đại lượng có thể đo [2] gọi là phép đo [3].',
+                options: ['công thức', 'trực tiếp', 'gián tiếp'],
+                answers: { '1': 'công thức', '2': 'trực tiếp', '3': 'gián tiếp' },
+                rationale: 'Định nghĩa SGK: Đo thông qua công thức là đo gián tiếp.'
+            },
+            {
+                type: 'drag-drop-fill',
+                question: 'Kéo thả các từ thích hợp vào chỗ trống liên quan đến cách ghi kết quả đo:<br><br>Kết quả đo đại lượng A được ghi dưới dạng một [1] giá trị: <br> $(\\overline{A} - \\Delta A) \\le A \\le (\\overline{A} + \\Delta A)$ hoặc công thức gọn là $A = \\overline{A} \\pm$ [2]',
+                options: ['khoảng', '\\Delta A', '\\delta A', 'giá trị trung bình'],
+                answers: { '1': 'khoảng', '2': '\\Delta A' },
+                rationale: 'Kết quả đo đại lượng A được ghi dưới dạng một khoảng giá trị. Giá trị thực của A nằm trong khoảng từ $\\overline{A} - \\Delta A$ đến $\\overline{A} + \\Delta A$ (SGK trang 18).'
+            },
+            
+            // Matching
+            {
+                type: 'matching',
+                question: 'Ghép nối các công thức tính sai số tương ứng:',
+                pairs: [
+                    { left: '$A = B + C$', right: '$\\Delta A = \\Delta B + \\Delta C$' },
+                    { left: '$A = B \\cdot C$', right: '$\\delta A = \\delta B + \\delta C$' },
+                    { left: '$v = \\frac{s}{t}$', right: '$\\delta v = \\frac{\\Delta s}{\\overline{s}} + \\frac{\\Delta t}{\\overline{t}}$' },
+                    { left: '$A = B\\sqrt{C}$', right: '$\\delta A = \\delta B + \\frac{1}{2}\\delta C$' }
+                ],
+                rationale: 'Tổng/hiệu thì cộng sai số tuyệt đối. Tích/thương thì cộng sai số tỉ đối. Lũy thừa n thì nhân n lần sai số tỉ đối.'
+            },
+            {
+                type: 'matching',
+                question: 'Ghép nối các ý để hoàn thành đặc điểm của các loại sai số:',
+                pairs: [
+                    { left: 'Sai số hệ thống', right: 'Do đặc điểm cấu tạo của dụng cụ' },
+                    { left: 'Sai số ngẫu nhiên', right: 'Do thao tác đo không chuẩn, điều kiện môi trường' },
+                    { left: 'Khắc phục sai số ngẫu nhiên', right: 'Thực hiện đo nhiều lần và tính trung bình' },
+                    { left: 'Sai số dụng cụ (chưa biết)', right: 'Lấy bằng 1 nửa hoặc 1 độ chia nhỏ nhất' }
+                ],
+                rationale: 'Đây là các đặc điểm và cách khắc phục cơ bản phân loại sai số trong Vật lí.'
+            }
+        ];
+
+        let currentGroup = '';
+        let currentMembers = '';
+        let questions = [];
+        let currentQIndex = 0;
+        let score = 0;
+        let timerInterval;
+        let timeLeft = 30;
+        let timeSpent = 0;
+        let mainTimer;
+        let selectedDraggable = null;
+
+        // Bảng xếp hạng in-memory
+        window.leaderboard = [];
+
+        // Hệ thống âm thanh (Sử dụng Tone.js)
+        let synth;
+        function initAudio() {
+            if (typeof Tone !== 'undefined' && !synth) {
+                synth = new Tone.Synth().toDestination();
+                Tone.start();
+            }
+        }
+        function playSound(type) {
+            if (!synth) return;
+            if (type === 'correct') {
+                synth.triggerAttackRelease("C5", "8n");
+                setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 150);
+            } else if (type === 'wrong') {
+                synth.triggerAttackRelease("C3", "8n");
+            } else if (type === 'timeout') {
+                synth.triggerAttackRelease("F2", "4n");
+            } else if (type === 'win') {
+                const now = Tone.now();
+                synth.triggerAttackRelease("C4", "8n", now);
+                synth.triggerAttackRelease("E4", "8n", now + 0.2);
+                synth.triggerAttackRelease("G4", "8n", now + 0.4);
+                synth.triggerAttackRelease("C5", "4n", now + 0.6);
+            }
+        }
+
+        // Tiện ích xáo trộn mảng (Ngẫu nhiên hóa)
+        function shuffleArray(array) {
+            let arrCopy = [...array];
+            for (let i = arrCopy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arrCopy[i], arrCopy[j]] = [arrCopy[j], arrCopy[i]];
+            }
+            return arrCopy;
+        }
+
+        function showAlert(title, message) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+        
+        function confirmEarlySubmit() { document.getElementById('confirm-modal').style.display = 'flex'; }
+        function closeConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
+        
+        function showTeacherLogin() {
+            document.getElementById('teacher-pwd').value = '';
+            document.getElementById('teacher-err').innerText = '';
+            document.getElementById('teacher-login-modal').style.display = 'flex';
+        }
+        function closeTeacherLogin() { document.getElementById('teacher-login-modal').style.display = 'none'; }
+        
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Khởi động bài thi
+        function startQuiz() {
+            initAudio();
+            const groupSelect = document.getElementById('group-select').value;
+            const members = document.getElementById('member-names').value.trim();
+            const errorDiv = document.getElementById('login-error');
+
+            if (!groupSelect) {
+                errorDiv.innerText = "❌ Bạn chưa chọn Nhóm từ menu thả xuống!";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (!members) {
+                errorDiv.innerText = "❌ Vui lòng nhập tên các thành viên trong nhóm!";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            errorDiv.classList.add('hidden');
+            currentGroup = groupSelect;
+            currentMembers = members;
+            document.getElementById('quiz-group-name').innerText = currentGroup;
+
+            // Xáo trộn thứ tự 25 câu hỏi
+            questions = shuffleArray(questionsData);
+            
+            // Xáo trộn phương án cho câu trắc nghiệm
+            questions = questions.map(q => {
+                let newQ = { ...q };
+                if (newQ.type === 'mcq' && newQ.options) {
+                    newQ.options = shuffleArray(newQ.options);
+                }
+                return newQ;
+            });
+
+            currentQIndex = 0;
+            score = 0;
+            timeSpent = 0;
+            selectedDraggable = null;
+            
+            mainTimer = setInterval(() => timeSpent++, 1000);
+            showScreen('quiz-screen');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQIndex];
+            document.getElementById('current-q-num').innerText = currentQIndex + 1;
+            document.getElementById('total-q-num').innerText = questions.length;
+            
+            // Reset Progress bar
+            const progress = (currentQIndex / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Reset Timer
+            clearInterval(timerInterval);
+            timeLeft = 30;
+            document.getElementById('timer-display').innerText = timeLeft;
+            document.getElementById('timer-bar').style.width = '100%';
+            document.getElementById('timer-bar').style.backgroundColor = '#3b82f6';
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-display').innerText = timeLeft;
+                const percent = (timeLeft / 30) * 100;
+                document.getElementById('timer-bar').style.width = `${percent}%`;
+                
+                if(timeLeft <= 10) document.getElementById('timer-bar').style.backgroundColor = '#ef4444';
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    playSound('timeout');
+                    handleTimeOut();
+                }
+            }, 1000);
+
+            // Reset UI components
+            document.getElementById('feedback-container').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('btn-check').classList.remove('hidden');
+            selectedDraggable = null;
+
+            const container = document.getElementById('question-container');
+            let html = `<h3 class="text-xl font-bold mb-4 text-blue-900 leading-relaxed">Câu ${currentQIndex + 1}: ${q.question}</h3>`;
+
+            if (q.type === 'mcq') {
+                html += `<div class="space-y-3 mt-4">`;
+                q.options.forEach(opt => {
+                    html += `
+                        <label class="flex items-center p-4 border-2 border-gray-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 cursor-pointer transition shadow-sm bg-white">
+                            <input type="radio" name="mcq-answer" value="${opt.replace(/"/g, '&quot;')}" class="w-6 h-6 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-4 text-lg font-medium text-gray-700">${opt.includes('$') ? opt : opt}</span>
+                        </label>
+                    `;
+                });
+                html += `</div>`;
+            } 
+            else if (q.type === 'fill') {
+                html += `
+                    <div class="mt-4">
+                        <input type="text" id="fill-answer" placeholder="Nhập câu trả lời..." class="w-full p-4 border-2 border-blue-200 rounded-xl text-lg font-medium focus:outline-none focus:border-blue-500 shadow-sm transition">
+                    </div>
+                `;
+            }
+            else if (q.type === 'drag-drop-fill') {
+                let qText = q.question;
+                Object.keys(q.answers).forEach(key => {
+                    qText = qText.replace(`[${key}]`, `<span class="dropzone shadow-inner" data-id="${key}" onclick="handleDropzoneClick(this)"></span>`);
+                });
+                html = `<h3 class="text-xl font-bold mb-6 text-blue-900 leading-relaxed">Câu ${currentQIndex + 1}: ${qText}</h3>`;
+                
+                html += `<div class="bg-gray-100 p-5 rounded-xl border border-gray-200 mt-4 text-center min-h-[80px] shadow-sm flex flex-wrap justify-center gap-3" id="draggables-pool">`;
+                let draggables = shuffleArray(q.options);
+                draggables.forEach(opt => {
+                    // Thêm $ nếu chuỗi có chứa ký tự backslash (dấu hiệu của latex)
+                    let displayOpt = opt.includes('\\') ? `$${opt}$` : opt;
+                    html += `<div class="draggable text-lg" data-value="${opt}" onclick="handleDraggableClick(this)">${displayOpt}</div>`;
+                });
+                html += `</div>`;
+                html += `<p class="text-sm text-blue-600 mt-3 text-center font-semibold bg-blue-50 p-2 rounded-lg">👉 CHẠM VÀO ĐÁP ÁN BÊN DƯỚI, SAU ĐÓ CHẠM VÀO Ô TRỐNG ĐỂ GHÉP CHỮ.</p>`;
+            }
+            else if (q.type === 'matching') {
+                let rightItems = shuffleArray(q.pairs);
+                
+                html += `<div class="flex flex-col md:flex-row gap-5 mt-6">`;
+                
+                // Cột trái (Cố định)
+                html += `<div class="flex-1 space-y-4">`;
+                q.pairs.forEach((pair, idx) => {
+                    html += `
+                        <div class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-xl bg-white shadow-sm h-20">
+                            <div class="font-medium text-gray-700 flex-1">${pair.left}</div>
+                            <div class="dropzone w-1/2 ml-4 flex items-center justify-center text-sm text-gray-400 h-full shadow-inner border-dashed" data-id="${idx}" onclick="handleDropzoneClick(this)">Ghép vào đây</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+
+                // Cột phải (Vật kéo - Pool)
+                html += `<div class="flex-1 flex flex-col justify-center space-y-4 bg-gray-50 p-5 rounded-xl border-2 border-gray-100 shadow-inner min-h-[350px]" id="draggables-pool">`;
+                rightItems.forEach((item) => {
+                    html += `<div class="draggable w-full text-center py-4 font-medium text-blue-800 bg-white shadow-sm" data-value="${item.right.replace(/"/g, '&quot;')}" onclick="handleDraggableClick(this)">${item.right}</div>`;
+                });
+                html += `</div></div>`;
+                html += `<p class="text-sm text-blue-600 mt-4 text-center font-semibold bg-blue-50 p-2 rounded-lg">👉 CHẠM VÀO ĐÁP ÁN BÊN PHẢI (SÁNG MÀU LÊN), SAU ĐÓ CHẠM VÀO Ô TRỐNG ĐỂ GHÉP VÀO.</p>`;
+            }
+
+            container.innerHTML = html;
+            
+            // Kích hoạt MathJax (SVG) vẽ lại công thức mới thêm vào HTML
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([container]).catch((err) => console.log(err.message));
+            }
+        }
+
+        function handleDraggableClick(element) {
+            if (selectedDraggable === element) {
+                element.classList.remove('selected-to-drop');
+                selectedDraggable = null;
+                return;
+            }
+            if (selectedDraggable) {
+                selectedDraggable.classList.remove('selected-to-drop');
+            }
+            if (element.parentElement.classList.contains('dropzone')) {
+                document.getElementById('draggables-pool').appendChild(element);
+                element.parentElement.classList.remove('filled');
+                return;
+            }
+            selectedDraggable = element;
+            element.classList.add('selected-to-drop');
+        }
+
+        function handleDropzoneClick(dropzone) {
+            if (dropzone.children.length > 0) {
+                 const child = dropzone.children[0];
+                 document.getElementById('draggables-pool').appendChild(child);
+                 child.classList.remove('selected-to-drop');
+                 dropzone.classList.remove('filled');
+                 if(selectedDraggable === child) selectedDraggable = null;
+                 return;
+            }
+            if (selectedDraggable) {
+                dropzone.appendChild(selectedDraggable);
+                selectedDraggable.classList.remove('selected-to-drop');
+                dropzone.classList.add('filled');
+                selectedDraggable = null;
+            }
+        }
+
+        function checkAnswer() {
+            clearInterval(timerInterval);
+            const q = questions[currentQIndex];
+            let isCorrect = false;
+
+            if (q.type === 'mcq') {
+                const selected = document.querySelector('input[name="mcq-answer"]:checked');
+                if (!selected) {
+                    showAlert("Lưu ý nhỏ", "Bạn chưa chọn đáp án nào. Hãy chọn một đáp án nhé!");
+                    timerInterval = setInterval(() => {
+                        timeLeft--;
+                        document.getElementById('timer-display').innerText = timeLeft;
+                        if(timeLeft <= 0) { clearInterval(timerInterval); handleTimeOut(); }
+                    }, 1000);
+                    return;
+                }
+                isCorrect = (selected.value === q.correct);
+            } 
+            else if (q.type === 'fill') {
+                const ans = document.getElementById('fill-answer').value.trim().toLowerCase();
+                if (!ans) {
+                    showAlert("Lưu ý nhỏ", "Bạn chưa điền từ vào ô trống!");
+                    timerInterval = setInterval(() => { timeLeft--; if(timeLeft<=0) handleTimeOut(); }, 1000);
+                    return;
+                }
+                isCorrect = (ans === q.correct.toLowerCase());
+            }
+            else if (q.type === 'drag-drop-fill') {
+                isCorrect = true;
+                const dropzones = document.querySelectorAll('.dropzone');
+                let answered = 0;
+                dropzones.forEach(dz => {
+                    const id = dz.getAttribute('data-id');
+                    if (dz.children.length > 0) {
+                        answered++;
+                        const val = dz.children[0].getAttribute('data-value');
+                        if (val !== q.answers[id]) isCorrect = false;
+                    } else {
+                        isCorrect = false;
+                    }
+                });
+                if(answered === 0) {
+                    showAlert("Lưu ý nhỏ", "Bạn chưa ghép đáp án nào vào ô trống!");
+                    timerInterval = setInterval(() => { timeLeft--; if(timeLeft<=0) handleTimeOut(); }, 1000);
+                    return;
+                }
+            }
+            else if (q.type === 'matching') {
+                isCorrect = true;
+                const dropzones = document.querySelectorAll('.dropzone');
+                let answered = 0;
+                dropzones.forEach(dz => {
+                    const id = parseInt(dz.getAttribute('data-id'));
+                    if (dz.children.length > 0) {
+                        answered++;
+                        const val = dz.children[0].getAttribute('data-value');
+                        if (val !== q.pairs[id].right) isCorrect = false;
+                    } else {
+                        isCorrect = false;
+                    }
+                });
+                if(answered === 0) {
+                    showAlert("Lưu ý nhỏ", "Bạn chưa ghép nối ô nào cả!");
+                    timerInterval = setInterval(() => { timeLeft--; if(timeLeft<=0) handleTimeOut(); }, 1000);
+                    return;
+                }
+            }
+
+            processResult(isCorrect, q.rationale);
+        }
+
+        function handleTimeOut() {
+            processResult(false, "Đã hết thời gian 30 giây! " + questions[currentQIndex].rationale);
+        }
+
+        function processResult(isCorrect, rationaleText) {
+            const feedback = document.getElementById('feedback-container');
+            feedback.classList.remove('hidden', 'bg-green-50', 'text-green-800', 'bg-red-50', 'text-red-800', 'border-green-200', 'border-red-200');
+            
+            if (isCorrect) {
+                score++;
+                playSound('correct');
+                const congrats = ["✅ Chúc mừng bạn, quá chuẩn!", "✅ Ồ de, chính xác!", "✅ Bạn giỏi lắm!"];
+                const randomCongrat = congrats[Math.floor(Math.random() * congrats.length)];
+                
+                feedback.classList.add('bg-green-50', 'text-green-800', 'border-2', 'border-green-200');
+                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-green-700">${randomCongrat}</p><p class="text-base text-green-900 bg-white p-3 rounded-lg shadow-sm border border-green-100">📖 <b>Giải thích:</b> ${rationaleText}</p>`;
+            } else {
+                playSound('wrong');
+                feedback.classList.add('bg-red-50', 'text-red-800', 'border-2', 'border-red-200');
+                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-red-700">❌ Bạn sai rồi!</p><p class="text-base text-red-900 bg-white p-3 rounded-lg shadow-sm border border-red-100">📖 <b>Lời giải:</b> ${rationaleText}</p>`;
+            }
+
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([feedback]).catch(e => console.log(e));
+            }
+
+            document.getElementById('btn-check').classList.add('hidden');
+            document.getElementById('btn-next').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQIndex++;
+            if (currentQIndex < questions.length) {
+                renderQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function forceSubmitQuiz() {
+            closeConfirm();
+            clearInterval(timerInterval);
+            endQuiz();
+        }
+
+        function endQuiz() {
+            clearInterval(mainTimer);
+            
+            const min = Math.floor(timeSpent / 60);
+            const sec = timeSpent % 60;
+            const timeStr = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+            window.leaderboard.push({
+                group: currentGroup,
+                members: currentMembers,
+                score: score,
+                time: timeSpent,
+                timeStr: timeStr
+            });
+
+            document.getElementById('result-group').innerText = currentGroup + ` (${currentMembers})`;
+            document.getElementById('result-score').innerText = `${score} / ${questions.length}`;
+            document.getElementById('result-time').innerText = timeStr;
+
+            const msgEl = document.getElementById('result-message');
+            if (score >= 20) {
+                msgEl.innerText = "🎉 Xin chúc mừng nhóm đã hoàn thành xuất sắc nhiệm vụ!";
+                msgEl.className = "text-2xl font-bold mb-8 text-green-600 px-4";
+                playSound('win');
+                if(typeof confetti === 'function') fireConfetti();
+            } else if (score <= 10) {
+                msgEl.innerText = "🥺 Bạn đừng buồn, cần xem kĩ lại lý thuyết nhé!";
+                msgEl.className = "text-2xl font-bold mb-8 text-red-500 px-4";
+            } else {
+                msgEl.innerText = "👍 Rất khá! Hãy tiếp tục cố gắng hơn ở những bài sau nhé!";
+                msgEl.className = "text-2xl font-bold mb-8 text-blue-600 px-4";
+            }
+
+            showScreen('result-screen');
+        }
+
+        function fireConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        // --- HỆ THỐNG GIÁO VIÊN ---
+        function checkTeacherLogin() {
+            const pwd = document.getElementById('teacher-pwd').value;
+            const err = document.getElementById('teacher-err');
+            if (pwd === '123456') {
+                closeTeacherLogin();
+                renderLeaderboard();
+                renderAllQuestions();
+                showScreen('teacher-screen');
+            } else {
+                err.innerText = "Sai mật khẩu! Vui lòng thử lại.";
+            }
+        }
+
+        function switchTeacherTab(tab) {
+            document.getElementById('tab-leaderboard').className = "px-6 py-3 font-bold text-gray-500 border-b-4 border-transparent hover:bg-gray-50 hover:text-blue-600 transition";
+            document.getElementById('tab-questions').className = "px-6 py-3 font-bold text-gray-500 border-b-4 border-transparent hover:bg-gray-50 hover:text-blue-600 transition";
+            document.getElementById('view-leaderboard').classList.add('hidden');
+            document.getElementById('view-questions').classList.add('hidden');
+
+            if(tab === 'leaderboard') {
+                document.getElementById('tab-leaderboard').className = "px-6 py-3 font-bold text-blue-600 border-b-4 border-blue-600 hover:bg-blue-50 transition";
+                document.getElementById('view-leaderboard').classList.remove('hidden');
+                renderLeaderboard();
+            } else {
+                document.getElementById('tab-questions').className = "px-6 py-3 font-bold text-blue-600 border-b-4 border-blue-600 hover:bg-blue-50 transition";
+                document.getElementById('view-questions').classList.remove('hidden');
+            }
+        }
+
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            const empty = document.getElementById('empty-leaderboard');
+            
+            if (window.leaderboard.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            const sorted = [...window.leaderboard].sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.time - b.time; // Ưu tiên thời gian nhỏ nếu bằng điểm
+            });
+
+            tbody.innerHTML = sorted.map((row, index) => {
+                let badge = '';
+                if(index === 0) badge = '🥇';
+                else if(index === 1) badge = '🥈';
+                else if(index === 2) badge = '🥉';
+
+                return `
+                <tr class="bg-white border-b hover:bg-gray-50 transition">
+                    <td class="font-bold text-center text-lg py-3">${badge} ${index + 1}</td>
+                    <td class="font-bold text-blue-800">${row.group}</td>
+                    <td class="text-gray-600 font-medium">${row.members}</td>
+                    <td class="font-black text-green-600 text-center text-lg">${row.score}</td>
+                    <td class="text-center font-medium">${row.timeStr}</td>
+                </tr>
+            `}).join('');
+        }
+
+        function renderAllQuestions() {
+            const container = document.getElementById('questions-list-container');
+            let html = '';
+            
+            questionsData.forEach((q, idx) => {
+                let qTextFixed = q.question;
+                // Nếu là dạng điền từ vào chỗ trống, hiển thị lại vị trí chỗ trống để dễ đọc
+                if (q.type === 'drag-drop-fill') {
+                     Object.keys(q.answers).forEach(key => { qTextFixed = qTextFixed.replace(`[${key}]`, `[<span class="text-blue-500 font-bold">${key}</span>]`); });
+                }
+
+                html += `<div class="p-6 border-2 border-gray-100 rounded-xl bg-white shadow-sm mb-5 transition hover:shadow-md">
+                    <h4 class="font-bold text-blue-900 mb-3 text-lg">Câu ${idx + 1}: ${qTextFixed}</h4>`;
+                
+                if (q.type === 'mcq') {
+                    html += `<ul class="list-disc pl-6 mb-3 text-gray-700 font-medium space-y-1">`;
+                    q.options.forEach(opt => {
+                        const isC = (opt === q.correct);
+                        html += `<li class="${isC ? 'text-green-600 font-bold bg-green-50 px-2 rounded inline-block' : ''}">${opt} ${isC ? ' (Đáp án đúng)' : ''}</li>`;
+                    });
+                    html += `</ul>`;
+                } else if (q.type === 'fill') {
+                    html += `<p class="text-base text-green-700 font-bold mb-3 bg-green-50 p-2 rounded border border-green-100">ĐÁP ÁN ĐÚNG: ${q.correct}</p>`;
+                } else if (q.type === 'drag-drop-fill') {
+                    let ansFormat = '';
+                    Object.keys(q.answers).forEach(k => {
+                        let ans = q.answers[k];
+                        if (ans.includes('\\')) ans = `$${ans}$`;
+                        ansFormat += `[${k}] = ${ans} ; `;
+                    });
+                    html += `<p class="text-base text-green-700 font-bold mb-3 bg-green-50 p-2 rounded border border-green-100">ĐÁP ÁN KÉO THẢ: ${ansFormat}</p>`;
+                } else if (q.type === 'matching') {
+                    html += `<ul class="list-none mb-3 text-base text-gray-700 font-medium space-y-2">`;
+                    q.pairs.forEach(p => {
+                        html += `<li class="flex items-center gap-2"><span class="bg-gray-100 p-2 rounded">${p.left}</span> <span class="text-blue-500 font-bold">➔</span> <span class="bg-green-50 text-green-700 font-bold p-2 rounded border border-green-100">${p.right}</span></li>`;
+                    });
+                    html += `</ul>`;
+                }
+                html += `<div class="bg-blue-50 p-3 rounded-lg text-sm text-blue-900 border border-blue-100 font-medium"><b>📝 Giải thích SGK:</b> ${q.rationale}</div>
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+            // Cho MathJax render lại phần bảng câu hỏi giáo viên
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([container]).catch(e => console.log(e));
+            }
+        }
+
+        window.startQuiz = startQuiz;
+        window.showAlert = showAlert;
+        window.closeAlert = closeAlert;
+        window.confirmEarlySubmit = confirmEarlySubmit;
+        window.closeConfirm = closeConfirm;
+        window.showTeacherLogin = showTeacherLogin;
+        window.closeTeacherLogin = closeTeacherLogin;
+        window.checkTeacherLogin = checkTeacherLogin;
+        window.switchTeacherTab = switchTeacherTab;
+        window.nextQuestion = nextQuestion;
+        window.checkAnswer = checkAnswer;
+        window.forceSubmitQuiz = forceSubmitQuiz;
+        window.handleDraggableClick = handleDraggableClick;
+        window.handleDropzoneClick = handleDropzoneClick;
+    </script>
+</body>
+</html>

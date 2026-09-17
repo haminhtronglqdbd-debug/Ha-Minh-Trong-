@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Tương Tác - Cơ Năng (Format 2025)</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        window.MathJax = {
+            startup: { typeset: false },
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; overflow-x: hidden; scroll-behavior: smooth; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+
+        /* Kéo thả CTM */
+        .ctm-target { display: inline-flex; align-items: center; justify-content: center; min-width: 110px; min-height: 38px; padding: 4px 12px; margin: 4px; border: 2px dashed #f59e0b; border-radius: 8px; background-color: #fffbeb; color: #b45309; font-weight: 700; cursor: pointer; vertical-align: bottom; transition: all 0.2s; }
+        .ctm-target:hover { border-color: #d97706; background-color: #fef3c7; }
+        .ctm-target.filled { border-style: solid; background-color: #fde68a; border-color: #d97706; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2); }
+        .ctm-source { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; margin: 6px; border-radius: 9999px; background-color: #fef3c7; color: #92400e; font-weight: 700; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; user-select: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .ctm-source:hover:not(.used) { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: #fde68a; }
+        .ctm-source.active { border-color: #d97706; background-color: #fde68a; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3); transform: scale(1.05); }
+        .ctm-source.used { opacity: 0.3; cursor: not-allowed; transform: none; background-color: #e2e8f0; color: #94a3b8; box-shadow: none; }
+        .ctm-source mjx-container, .ctm-target mjx-container { pointer-events: none; }
+
+        mjx-container { display: inline-block !important; }
+        mjx-container svg { display: inline-block !important; }
+        mjx-container[display="true"] { display: block !important; margin: 1em 0 !important; }
+        mjx-container[display="true"] svg { display: block !important; margin: 0 auto !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-popIn { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body>
+
+    <div id="app-root" class="min-h-screen w-full flex flex-col bg-[url('https://www.transparenttextures.com/patterns/connected.png')]"></div>
+
+    <script type="module">
+        const RAW_QUESTION_BANK = [
+            // --- DẠNG 1: TRẮC NGHIỆM 4 LỰA CHỌN (MC) ---
+            { type: 'MC', q: 'Động năng của một vật phụ thuộc vào những đại lượng nào sau đây?', opts: ['Khối lượng và vị trí của vật.', 'Khối lượng và tốc độ của vật.', 'Trọng lượng và độ cao của vật.', 'Tốc độ và độ cao của vật.'], ans: 1, exp: 'Theo định nghĩa, động năng là năng lượng do chuyển động, phụ thuộc vào khối lượng $m$ và tốc độ $v$: $W_d = \\frac{1}{2}mv^2$.' },
+            { type: 'MC', q: 'Công thức tính cơ năng của một vật chuyển động trong trọng trường là:', opts: ['$$W_c = \\frac{1}{2}mv^2 + mgh$$', '$$W_c = \\frac{1}{2}mv^2 + \\frac{1}{2}kx^2$$', '$$W_c = mv^2 + Ph$$', '$$W_c = W_d - W_t$$'], ans: 0, exp: 'Cơ năng bằng tổng động năng và thế năng trọng trường: $W_c = W_d + W_t = \\frac{1}{2}mv^2 + Ph = \\frac{1}{2}mv^2 + mgh$.' },
+            { type: 'MC', q: 'Trong quá trình một vật rơi tự do, điều nào sau đây là đúng (bỏ qua sức cản không khí)?', opts: ['Động năng tăng, thế năng tăng.', 'Động năng giảm, thế năng giảm.', 'Động năng tăng, thế năng giảm.', 'Động năng giảm, thế năng tăng.'], ans: 2, exp: 'Khi rơi tự do, độ cao giảm (thế năng giảm) và vận tốc tăng dần (động năng tăng).' },
+            { type: 'MC', q: 'Năng lượng mà vật có được do biến dạng đàn hồi gọi là gì?', opts: ['Động năng đàn hồi.', 'Nhiệt năng.', 'Cơ năng trọng trường.', 'Thế năng đàn hồi.'], ans: 3, exp: 'Năng lượng tích trữ trong các vật bị biến dạng (như lò xo, dây cung bị kéo căng) gọi là thế năng đàn hồi.' },
+            { type: 'MC', q: 'Đơn vị đo của Cơ năng trong hệ SI là gì?', opts: ['Oát (W)', 'Niutơn (N)', 'Jun (J)', 'Kilôgam (kg)'], ans: 2, exp: 'Cơ năng là một dạng năng lượng nên có đơn vị đo chuẩn là Jun (J).' },
+            { type: 'MC', q: 'Một quả bóng được tung thẳng đứng lên cao. Tại vị trí cao nhất, năng lượng của quả bóng tồn tại dưới dạng nào là chủ yếu?', opts: ['Chỉ có động năng.', 'Chỉ có thế năng.', 'Cả động năng và thế năng đều cực đại.', 'Cơ năng bằng không.'], ans: 1, exp: 'Tại vị trí cao nhất, tốc độ bằng 0 nên động năng bằng 0. Toàn bộ cơ năng lúc này là thế năng cực đại.' },
+            { type: 'MC', q: 'Trong thí nghiệm con lắc đơn, khi vật đi từ vị trí biên (cao nhất) về vị trí cân bằng (thấp nhất) thì:', opts: ['Cơ năng tăng dần.', 'Động năng chuyển hoá thành thế năng.', 'Thế năng chuyển hoá thành động năng.', 'Cả thế năng và động năng đều giảm.'], ans: 2, exp: 'Khi đi từ vị trí cao xuống thấp, độ cao giảm (thế năng giảm), tốc độ tăng (động năng tăng), tức là thế năng chuyển hoá thành động năng.' },
+
+            // --- DẠNG 2: CỤM CÂU HỎI ĐÚNG/SAI (TF_CLUSTER) ---
+            { 
+                type: 'TF_CLUSTER', 
+                q: 'Một viên bi lăn từ đỉnh một mặt phẳng nghiêng xuống chân mặt phẳng nghiêng (bỏ qua mọi ma sát). Đánh giá tính Đúng/Sai của các phát biểu sau:', 
+                statements: [
+                    { text: 'Thế năng của viên bi giảm dần do độ cao giảm.', ans: true },
+                    { text: 'Động năng của viên bi không đổi trong suốt quá trình lăn.', ans: false },
+                    { text: 'Cơ năng của viên bi được bảo toàn.', ans: true },
+                    { text: 'Tại chân mặt phẳng nghiêng, động năng của viên bi là lớn nhất.', ans: true }
+                ], 
+                exp: 'A đúng vì độ cao giảm. B sai vì tốc độ tăng làm động năng tăng. C đúng vì bỏ qua ma sát cơ năng bảo toàn. D đúng vì tại chân dốc thế năng nhỏ nhất, động năng lớn nhất.' 
+            },
+            { 
+                type: 'TF_CLUSTER', 
+                q: 'Về khái niệm động năng và thế năng, các phát biểu sau đây Đúng hay Sai?', 
+                statements: [
+                    { text: 'Vật đứng yên thì động năng bằng 0.', ans: true },
+                    { text: 'Thế năng trọng trường không phụ thuộc vào việc chọn mốc tính độ cao.', ans: false },
+                    { text: 'Hai vật có cùng khối lượng, vật nào chuyển động nhanh hơn thì động năng lớn hơn.', ans: true },
+                    { text: 'Cơ năng luôn bằng tổng đại số của động năng và thế năng.', ans: true }
+                ], 
+                exp: 'B sai vì giá trị thế năng phụ thuộc vào vị trí được chọn làm gốc thế năng. Các phát biểu còn lại đúng theo định nghĩa.' 
+            },
+            { 
+                type: 'TF_CLUSTER', 
+                q: 'Một người tung một quả bóng từ mặt đất lên cao theo phương thẳng đứng. Chọn mốc thế năng tại mặt đất. Đánh giá tính Đúng/Sai:', 
+                statements: [
+                    { text: 'Ngay khi vừa rời khỏi tay, quả bóng có động năng lớn nhất.', ans: true },
+                    { text: 'Trong quá trình bay lên, động năng chuyển hóa thành thế năng.', ans: true },
+                    { text: 'Tại vị trí cao nhất, cơ năng của quả bóng bằng 0.', ans: false },
+                    { text: 'Khi rơi chạm đất, thế năng của quả bóng là cực đại.', ans: false }
+                ], 
+                exp: 'C sai vì tại vị trí cao nhất, cơ năng bằng thế năng cực đại (khác 0). D sai vì chạm đất thì thế năng bằng 0.' 
+            },
+            { 
+                type: 'TF_CLUSTER', 
+                q: 'Đánh giá các phát biểu về sự bảo toàn năng lượng cơ học (bỏ qua ma sát):', 
+                statements: [
+                    { text: 'Động năng và thế năng có thể chuyển hóa qua lại lẫn nhau.', ans: true },
+                    { text: 'Khi thế năng giảm bao nhiêu thì động năng cũng giảm bấy nhiêu.', ans: false },
+                    { text: 'Tổng động năng và thế năng là một hằng số.', ans: true },
+                    { text: 'Cơ năng chỉ bảo toàn khi không có lực cản, ma sát.', ans: true }
+                ], 
+                exp: 'B sai, vì khi thế năng giảm thì động năng phải TĂNG một lượng tương ứng để tổng cơ năng không đổi.' 
+            },
+
+            // --- DẠNG 3: TRẢ LỜI NGẮN NHẬP SỐ (SHORT_ANS) ---
+            { type: 'SHORT_ANS', q: 'Một viên đạn khối lượng $m = 0{,}05$ kg đang bay với tốc độ $v = 400$ m/s. Tính động năng của viên đạn. (Nhập kết quả là một số, đơn vị J).', ans: '4000', exp: 'Áp dụng công thức: $W_d = \\frac{1}{2}mv^2 = \\frac{1}{2} \\times 0{,}05 \\times 400^2 = 4000\\text{ J}$.' },
+            { type: 'SHORT_ANS', q: 'Một thùng hàng trọng lượng $P = 200$ N được đưa lên độ cao $h = 5$ m so với mặt đất. Chọn mốc thế năng tại mặt đất. Tính thế năng của thùng hàng. (Nhập kết quả là một số, đơn vị J).', ans: '1000', exp: 'Áp dụng công thức: $W_t = Ph = 200 \\times 5 = 1000\\text{ J}$.' },
+            { type: 'SHORT_ANS', q: 'Một vật đang chuyển động có động năng là $30\\text{ J}$ và thế năng là $15{,}5\\text{ J}$. Cơ năng của vật là bao nhiêu? (Nhập kết quả làm tròn đến hàng phần mười, đơn vị J).', ans: '45.5', exp: 'Cơ năng là tổng động năng và thế năng: $W_c = W_d + W_t = 30 + 15{,}5 = 45{,}5\\text{ J}$.' },
+            { type: 'SHORT_ANS', q: 'Động năng của một ô tô sẽ tăng lên bao nhiêu lần nếu tốc độ của ô tô tăng gấp 3 lần (khối lượng xe không đổi)? (Nhập kết quả là một số nguyên).', ans: '9', exp: 'Động năng tỉ lệ thuận với bình phương tốc độ ($v^2$). Nên nếu $v$ tăng 3 lần thì động năng tăng $3^2 = 9$ lần.' },
+            { type: 'SHORT_ANS', q: 'Một vật được thả rơi tự do từ độ cao $h$. Tại vị trí thả, thế năng là $100\\text{ J}$. Khi chạm đất (mốc thế năng), động năng của vật là bao nhiêu? (Bỏ qua sức cản không khí). (Nhập kết quả là một số, đơn vị J).', ans: '100', exp: 'Theo định luật bảo toàn cơ năng, toàn bộ thế năng cực đại ban đầu chuyển hóa thành động năng cực đại lúc chạm đất. Do đó $W_{d\\text{ max}} = 100\\text{ J}$.' },
+
+            // --- DẠNG 4: GHÉP NỐI (MATCH) ---
+            { type: 'MATCH', q: 'Ghép các đại lượng Vật lí với biểu thức tính tương ứng:', pairs: [ {l: 'Động năng', r: '$\\frac{1}{2}mv^2$'}, {l: 'Thế năng trọng trường', r: '$Ph$'}, {l: 'Cơ năng', r: '$W_d + W_t$'}, {l: 'Trọng lượng', r: '$mg$'} ], exp: 'Dựa vào các công thức đã học trong bài Động năng, Thế năng, Cơ năng.' },
+            { type: 'MATCH', q: 'Ghép đại lượng với đơn vị đo chuẩn trong hệ SI:', pairs: [ {l: 'Năng lượng (Động năng, Cơ năng)', r: 'Jun (J)'}, {l: 'Khối lượng ($m$)', r: 'Kilôgam (kg)'}, {l: 'Tốc độ ($v$)', r: 'Mét trên giây (m/s)'}, {l: 'Trọng lượng ($P$)', r: 'Niutơn (N)'} ], exp: 'Theo quy ước đơn vị đo chuẩn quốc tế SI cho các đại lượng trong công thức.' },
+            { type: 'MATCH', q: 'Phân tích sự chuyển hóa năng lượng (bỏ qua ma sát):', pairs: [ {l: 'Vật rơi từ trên cao xuống', r: 'Thế năng chuyển hóa thành Động năng'}, {l: 'Vật được ném thẳng đứng lên cao', r: 'Động năng chuyển hóa thành Thế năng'}, {l: 'Mũi tên bay ra từ cây cung', r: 'Thế năng đàn hồi thành Động năng'} ], exp: 'Rơi xuống: $h$ giảm, $v$ tăng. Ném lên: $h$ tăng, $v$ giảm. Bắn cung: dây chùng lại truyền tốc độ cho mũi tên.' },
+            { type: 'MATCH', q: 'Xác định dạng năng lượng chủ yếu tồn tại:', pairs: [ {l: 'Nước nằm yên trên đập cao', r: 'Thế năng trọng trường'}, {l: 'Quả bóng đang lăn trên sân bằng phẳng', r: 'Động năng'}, {l: 'Lò xo đang bị nén chặt', r: 'Thế năng đàn hồi'} ], exp: 'Dựa vào định nghĩa: Trọng trường liên quan đến độ cao; Động năng liên quan đến tốc độ; Đàn hồi liên quan đến biến dạng.' },
+
+            // --- DẠNG 5: ĐIỀN KHUYẾT ĐOẠN VĂN KÉO THẢ (DD) ---
+            { type: 'DD', q: 'Hoàn thành khái niệm về Cơ năng:', text: 'Tổng [0] và thế năng được gọi là [1] của vật. Kí hiệu của cơ năng là $W_c$. Đơn vị của cơ năng là [2].', correct: {'0':'động năng', '1':'cơ năng', '2':'jun (J)'}, opts: ['động năng', 'cơ năng', 'jun (J)', 'nhiệt năng', 'niutơn (N)'], exp: 'Trích định nghĩa Cơ năng: Tổng động năng và thế năng được gọi là cơ năng của vật.' },
+            { type: 'DD', q: 'Sự chuyển hóa năng lượng khi ném vật lên cao:', text: 'Khi một vật được ném lên cao, tốc độ giảm dần nên [0] của vật giảm. Đồng thời, độ cao của vật tăng dần nên [1] của vật tăng. Trong giai đoạn này, động năng đã [2] thành thế năng.', correct: {'0':'động năng', '1':'thế năng', '2':'chuyển hóa'}, opts: ['động năng', 'thế năng', 'chuyển hóa', 'biến mất', 'nhiệt năng'], exp: 'Phân tích quá trình bay lên: $v$ giảm -> động năng giảm; $h$ tăng -> thế năng tăng. Động năng chuyển hóa thành thế năng.' },
+            { type: 'DD', q: 'Phân tích chuyển động con lắc đơn:', text: 'Kéo con lắc đến vị trí A rồi thả nhẹ. Khi chuyển động từ A đến vị trí thấp nhất O, độ cao giảm dần nên [0] giảm dần; tốc độ tăng dần nên [1] tăng dần. Khi con lắc đi từ O lên B, thế năng [2] và động năng giảm dần.', correct: {'0':'thế năng', '1':'động năng', '2':'tăng dần'}, opts: ['thế năng', 'động năng', 'tăng dần', 'cơ năng', 'bằng 0'], exp: 'A đến O: Thế năng giảm, động năng tăng. O đến B: Đi lên cao nên thế năng tăng, động năng giảm.' },
+            { type: 'DD', q: 'Bảo toàn cơ năng:', text: 'Động năng và thế năng có thể chuyển hoá [0] lẫn nhau. Cơ năng của một vật là [1] động năng và thế năng: $W_c = W_d + W_t$. Nếu bỏ qua ma sát, cơ năng của vật được [2].', correct: {'0':'qua lại', '1':'tổng', '2':'bảo toàn'}, opts: ['qua lại', 'tổng', 'bảo toàn', 'hiệu', 'biến mất'], exp: 'Các chốt kiến thức về sự bảo toàn cơ năng.' },
+            { type: 'DD', q: 'Vai trò của ma sát đối với cơ năng:', text: 'Trong thực tế, do có lực [0] và lực cản của môi trường, cơ năng có thể chuyển hóa thành [1]. Do đó, cơ năng sẽ không được [2] toàn phần.', correct: {'0':'ma sát', '1':'nhiệt năng', '2':'bảo toàn'}, opts: ['ma sát', 'nhiệt năng', 'bảo toàn', 'động năng', 'thế năng'], exp: 'Khi có ma sát, một phần cơ năng bị hao hụt chuyển hóa thành nhiệt năng làm vật nóng lên, nên cơ năng không bảo toàn.' }
+        ];
+
+        // --- System State ---
+        const state = {
+            screen: 'LOGIN', // LOGIN, QUIZ, ADMIN
+            userType: null, // GROUP, INDIV
+            userName: '',
+            
+            questions: [],
+            score: 0,
+            
+            globalTimeLeft: 600, // 10 phút = 600s
+            timerId: null,
+            isSubmitted: false, // Cờ kiểm tra nộp bài
+            
+            // Array-based state to store answers per question
+            mcSelected: [],
+            tfAnswers: [], 
+            fibInput: [],
+            matchSelectedLeft: [],
+            matchPairs: [],
+            ddActiveSource: [],
+            ddAnswers: [],
+            
+            isCorrectArr: [], // Mảng lưu kết quả chấm điểm từng câu
+            
+            history: JSON.parse(localStorage.getItem('vatli_b3_conang_2025_v3') || '[]'),
+            admTab: 'GROUP'
+        };
+
+        // --- STREAMING_CHUNK: Helpers ---
+        function shuffle(arr) {
+            let array = [...arr];
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        let toneReady = false;
+        async function playSfx(type) {
+            if (typeof Tone === 'undefined') return;
+            try {
+                if (!toneReady) { await Tone.start(); toneReady = true; }
+                const synth = new Tone.Synth().toDestination();
+                if (type === 'correct') {
+                    synth.triggerAttackRelease("E5", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("G5", "8n"), 150);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("Eb4", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("C4", "4n"), 150);
+                }
+            } catch(e) { console.log("Audio err", e); }
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti !== 'undefined') confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+        }
+
+        // Hàng đợi MathJax an toàn chống Crash khi bấm nhanh
+        let mathJaxPromise = Promise.resolve();
+        function renderMath() {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                MathJax.typesetClear();
+                mathJaxPromise = mathJaxPromise.then(() => {
+                    return MathJax.typesetPromise([document.getElementById('app-root')]);
+                }).catch(err => console.log(err));
+            }
+        }
+
+        window.showModal = (id) => document.getElementById(id).classList.add('active');
+        window.hideModal = (id) => {
+            document.getElementById(id).classList.remove('active');
+            const inputs = document.querySelectorAll(`#${id} input`);
+            inputs.forEach(i => i.value = '');
+        };
+        window.alertMsg = (title, msg) => {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-body').innerText = msg;
+            showModal('msg-modal');
+        };
+
+        // --- STREAMING_CHUNK: App Core ---
+        const App = {
+            render() {
+                const root = document.getElementById('app-root');
+                const currentScroll = window.scrollY; // Lưu vị trí cuộn trang hiện tại
+
+                if (state.screen === 'LOGIN') root.innerHTML = this.htmlLogin() + this.htmlModals();
+                else if (state.screen === 'QUIZ') root.innerHTML = this.htmlQuiz() + this.htmlModals();
+                else if (state.screen === 'ADMIN') root.innerHTML = this.htmlAdmin() + this.htmlModals();
+                
+                window.scrollTo(0, currentScroll); // Trả lại vị trí cuộn trang, chống giật
+                renderMath(); // Gọi MathJax an toàn
+            },
+
+            // --- ĐĂNG NHẬP ---
+            htmlLogin() {
+                const isGroup = state.loginTab !== 'INDIV';
+                return `
+                <div class="flex-1 flex flex-col items-center justify-center p-4 z-10 min-h-screen">
+                    <div class="text-center mb-10">
+                        <h1 class="text-4xl md:text-5xl font-black mb-4 text-orange-600 drop-shadow uppercase tracking-tight">KHOA HỌC TỰ NHIÊN - VẬT LÍ</h1>
+                        <p class="text-xl font-bold text-orange-700 bg-orange-50 px-6 py-2 rounded-full shadow border border-orange-200 inline-block">Chương I - Bài 3: Cơ năng (Cấu trúc 2025)</p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-3xl w-full max-w-xl border-t-8 border-orange-500 shadow-2xl">
+                        <div class="flex border-b-2 border-slate-200 mb-8">
+                            <button onclick="App.setTab('GROUP')" class="flex-1 py-4 font-bold text-lg transition-all ${isGroup ? 'border-b-4 border-orange-500 text-orange-600' : 'text-slate-400'}">ĐĂNG NHẬP NHÓM</button>
+                            <button onclick="App.setTab('INDIV')" class="flex-1 py-4 font-bold text-lg transition-all ${!isGroup ? 'border-b-4 border-orange-500 text-orange-600' : 'text-slate-400'}">ĐĂNG NHẬP CÁ NHÂN</button>
+                        </div>
+                        
+                        ${isGroup ? `
+                            <div class="space-y-5">
+                                <div><label class="block font-bold mb-2 text-slate-700">Chọn Nhóm</label>
+                                <select id="l-group" class="w-full p-4 border-2 rounded-xl bg-slate-50 focus:border-orange-500 font-semibold text-lg outline-none">
+                                    ${[...Array(12)].map((_, i) => `<option value="${i+1}">Nhóm ${i+1}</option>`).join('')}
+                                </select></div>
+                                <div><label class="block font-bold mb-2 text-slate-700">Thành viên (Cách bằng dấu phẩy)</label>
+                                <input type="text" id="l-mems" class="w-full p-4 border-2 rounded-xl bg-slate-50 focus:border-orange-500 font-semibold text-lg outline-none" placeholder="VD: An, Bình, Châu"></div>
+                            </div>
+                        ` : `
+                            <div class="space-y-5">
+                                <div><label class="block font-bold mb-2 text-slate-700">Họ và Tên</label>
+                                <input type="text" id="l-name" class="w-full p-4 border-2 rounded-xl bg-slate-50 focus:border-orange-500 font-semibold text-lg outline-none" placeholder="Nhập họ tên..."></div>
+                                <div><label class="block font-bold mb-2 text-slate-700">Mật khẩu (Mặc định: 123456)</label>
+                                <input type="password" id="l-pass" class="w-full p-4 border-2 rounded-xl bg-slate-50 focus:border-orange-500 font-bold text-lg tracking-widest text-center outline-none" placeholder="******"></div>
+                            </div>
+                        `}
+                        
+                        <button onclick="App.start()" class="w-full mt-10 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-black py-5 rounded-2xl text-xl shadow-lg transition-transform hover:scale-105">BẮT ĐẦU BÀI THI</button>
+                    </div>
+
+                    <div class="fixed bottom-6 right-6 flex gap-4">
+                        <button onclick="showModal('mod-tea')" class="px-5 py-3 bg-white text-slate-700 rounded-xl font-bold shadow border">👨‍🏫 Giáo viên</button>
+                        <button onclick="showModal('mod-par')" class="px-5 py-3 bg-white text-slate-700 rounded-xl font-bold shadow border">👨‍👩‍👧 Phụ huynh</button>
+                    </div>
+                </div>
+                `;
+            },
+            
+            setTab(t) { state.loginTab = t; this.render(); },
+
+            // --- STREAMING_CHUNK: Setup Exam ---
+            start() {
+                const isGroup = state.loginTab !== 'INDIV';
+                if (isGroup) {
+                    const group = document.getElementById('l-group').value;
+                    const mems = document.getElementById('l-mems').value.trim();
+                    const count = mems.split(',').filter(x => x.trim() !== '').length;
+                    if (count < 2 || count > 4) return alertMsg("Lỗi", "Nhập từ 2 đến 4 thành viên, cách bằng dấu phẩy.");
+                    state.userType = 'GROUP';
+                    state.userName = `Nhóm ${group}: ${mems}`;
+                } else {
+                    const name = document.getElementById('l-name').value.trim();
+                    const pass = document.getElementById('l-pass').value;
+                    if (!name) return alertMsg("Lỗi", "Vui lòng nhập Họ Tên.");
+                    if (pass !== '123456') return alertMsg("Lỗi bảo mật", "Sai mật khẩu cá nhân!");
+                    state.userType = 'INDIV';
+                    state.userName = name;
+                }
+
+                // Xáo trộn đề
+                let qs = JSON.parse(JSON.stringify(RAW_QUESTION_BANK));
+                qs = shuffle(qs);
+                qs.forEach(q => {
+                    if (q.type === 'MC') {
+                        const correctStr = q.opts[q.ans];
+                        q.opts = shuffle(q.opts);
+                        q.ans = q.opts.indexOf(correctStr);
+                    }
+                });
+
+                state.questions = qs;
+                const len = qs.length;
+                state.score = 0;
+                state.isSubmitted = false;
+                
+                // Khởi tạo mảng lưu dữ liệu 25 câu
+                state.mcSelected = Array(len).fill(null);
+                state.tfAnswers = Array(len).fill(null).map(()=>({}));
+                state.fibInput = Array(len).fill('');
+                state.matchSelectedLeft = Array(len).fill(null);
+                state.matchPairs = Array(len).fill(null).map(()=>({}));
+                state.ddActiveSource = Array(len).fill(null);
+                state.ddAnswers = Array(len).fill(null).map(()=>({}));
+                
+                state.isCorrectArr = Array(len).fill(false);
+
+                state.screen = 'QUIZ';
+                
+                // Đồng hồ đếm ngược 10 phút
+                state.globalTimeLeft = 600; 
+                clearInterval(state.timerId);
+                state.timerId = setInterval(() => {
+                    if(state.isSubmitted) return clearInterval(state.timerId);
+                    
+                    state.globalTimeLeft--;
+                    const min = Math.floor(state.globalTimeLeft / 60).toString().padStart(2, '0');
+                    const sec = (state.globalTimeLeft % 60).toString().padStart(2, '0');
+                    const tel = document.getElementById('ui-global-time');
+                    if (tel) {
+                        tel.innerText = `${min}:${sec}`;
+                        if(state.globalTimeLeft <= 60) tel.classList.add('text-red-500', 'animate-pulse');
+                    }
+                    if (state.globalTimeLeft <= 0) {
+                        clearInterval(state.timerId);
+                        this.forceEnd(); 
+                    }
+                }, 1000);
+                
+                this.render();
+            },
+
+            // Kiểm tra xem câu hỏi đã được tương tác chưa (hiện màu vàng)
+            isQuestionAnswered(i) {
+                const q = state.questions[i];
+                if (q.type === 'MC') return state.mcSelected[i] !== null;
+                if (q.type === 'TF_CLUSTER') return Object.keys(state.tfAnswers[i]).length === q.statements.length;
+                if (q.type === 'SHORT_ANS') return state.fibInput[i].trim() !== '';
+                if (q.type === 'MATCH') return Object.keys(state.matchPairs[i]).length === q.pairs.length;
+                if (q.type === 'DD') return Object.keys(state.ddAnswers[i]).length === Object.keys(q.correct).length;
+                return false;
+            },
+
+            // --- STREAMING_CHUNK: Quiz Interface ---
+            htmlNavBar() {
+                return `
+                <div class="sticky top-0 z-50 flex overflow-x-auto gap-3 p-4 bg-white/95 backdrop-blur rounded-2xl shadow-md border mb-6 custom-scrollbar items-center">
+                    <span class="font-bold text-slate-400 uppercase tracking-widest text-xs shrink-0 mr-2">CÂU HỎI:</span>
+                    ${state.questions.map((q, i) => {
+                        let isAnswered = this.isQuestionAnswered(i);
+                        let bg = state.isSubmitted
+                            ? (state.isCorrectArr[i] ? 'bg-green-500 text-white border-green-600' : 'bg-red-500 text-white border-red-600')
+                            : (isAnswered ? 'bg-yellow-400 text-yellow-900 border-yellow-500' : 'bg-green-500 text-white border-green-600');
+                        return `<a href="#q-${i}" class="shrink-0 w-10 h-10 rounded-xl font-black flex items-center justify-center transition-all border-b-4 ${bg} hover:opacity-80 hover:-translate-y-1 focus:ring-4 focus:ring-blue-300 outline-none">${i+1}</a>`;
+                    }).join('')}
+                </div>
+                `;
+            },
+
+            htmlQuiz() {
+                const min = Math.floor(state.globalTimeLeft / 60).toString().padStart(2, '0');
+                const sec = (state.globalTimeLeft % 60).toString().padStart(2, '0');
+
+                let resultMsg = "";
+                if (state.isSubmitted) {
+                    resultMsg = state.score >= 20 ? "🎉 XUẤT SẮC! ĐÃ NẮM VỮNG KIẾN THỨC CƠ NĂNG!" : (state.score > 10 ? "👏 KHÁ TỐT! HÃY ÔN LẠI MỘT CHÚT NHÉ!" : "⚠️ YẾU! BẮT BUỘC XEM KĨ LẠI SÁCH GIÁO KHOA!");
+                }
+
+                return `
+                <div class="flex-1 flex flex-col p-4 md:p-8 max-w-6xl mx-auto w-full z-10">
+                    <div class="flex flex-wrap justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border sticky top-0 z-40">
+                        <div class="text-xl font-black text-slate-700 bg-slate-100 px-4 py-2 rounded-lg border">ĐỀ KIỂM TRA (25 CÂU)</div>
+                        <div class="flex items-center gap-6 mt-4 md:mt-0">
+                            ${state.isSubmitted ? `<div class="text-lg font-bold text-slate-500 hidden md:block">ĐIỂM: <span class="text-3xl text-orange-500 font-black">${state.score}/25</span></div>` : ''}
+                            <div class="bg-slate-100 px-5 py-2 rounded-xl flex items-center gap-3 border shadow-inner">
+                                ⏱ <span id="ui-global-time" class="text-3xl font-mono font-black text-slate-700">${min}:${sec}</span>
+                            </div>
+                            ${!state.isSubmitted 
+                                ? `<button onclick="App.reqEnd()" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-105">NỘP BÀI</button>` 
+                                : `<button onclick="location.reload()" class="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-105">VỀ TRANG CHỦ</button>`}
+                        </div>
+                    </div>
+
+                    ${this.htmlNavBar()}
+
+                    ${state.isSubmitted ? `
+                        <div class="bg-white p-8 rounded-3xl shadow-lg border-t-8 ${state.score >= 20 ? 'border-t-green-500' : 'border-t-orange-500'} mb-8 animate-popIn text-center">
+                            <h2 class="text-3xl font-black text-slate-800 mb-2 uppercase">Hoàn Thành Bài Thi</h2>
+                            <div class="text-xl text-slate-500 font-bold mb-6">${state.userName}</div>
+                            <div class="text-6xl font-black text-orange-500 mb-6">${state.score}<span class="text-4xl text-slate-300">/25</span></div>
+                            <div class="text-xl font-bold text-slate-700 p-4 bg-slate-50 rounded-xl border">${resultMsg}</div>
+                            <div class="mt-4 text-slate-500 font-medium italic">Kéo xuống để xem lời giải chi tiết từng câu.</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="space-y-8 pb-20">
+                        ${state.questions.map((q, i) => this.htmlSingleQuestion(q, i)).join('')}
+                    </div>
+                    
+                    ${!state.isSubmitted ? `
+                    <div class="mt-8 flex justify-center pb-20">
+                        <button onclick="App.reqEnd()" class="px-12 py-5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black rounded-2xl text-2xl shadow-lg transition-transform hover:scale-105 border-b-4 border-red-800">🚀 NỘP BÀI VÀ XEM ĐIỂM</button>
+                    </div>
+                    ` : ''}
+                </div>
+                `;
+            },
+
+            htmlSingleQuestion(q, qIdx) {
+                const isLocked = state.isSubmitted;
+                let typeBadge = '';
+                if(q.type === 'MC') typeBadge = 'TRẮC NGHIỆM ĐƠN';
+                else if(q.type === 'TF_CLUSTER') typeBadge = 'TRẮC NGHIỆM ĐÚNG/SAI';
+                else if(q.type === 'SHORT_ANS') typeBadge = 'TRẢ LỜI NGẮN';
+                else if(q.type === 'MATCH') typeBadge = 'GHÉP NỐI';
+                else if(q.type === 'DD') typeBadge = 'ĐIỀN TỪ (CHỌN TỪ GỢI Ý)';
+
+                return `
+                <div id="q-${qIdx}" class="bg-white p-6 md:p-10 rounded-3xl shadow-lg border flex flex-col relative overflow-hidden scroll-mt-32">
+                    <div class="flex justify-between items-start mb-6 border-b-2 border-slate-100 pb-4">
+                        <div class="flex flex-col">
+                            <div class="text-xl font-black text-slate-700 bg-slate-100 px-4 py-2 rounded-lg mb-2 w-max border">CÂU ${qIdx + 1}</div>
+                            <div class="text-sm font-bold text-orange-600 tracking-wide">${typeBadge}</div>
+                        </div>
+                        ${isLocked ? `
+                            <div class="text-2xl md:text-3xl font-black px-6 py-2 rounded-xl border-4 ${state.isCorrectArr[qIdx] ? 'text-green-600 bg-green-50 border-green-500' : 'text-red-600 bg-red-50 border-red-500'}">
+                                ${state.isCorrectArr[qIdx] ? '✅ ĐÚNG' : '❌ SAI'}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="text-2xl font-semibold mb-8 text-slate-800 leading-relaxed border-l-8 border-orange-500 pl-6">
+                        ${q.q}
+                    </div>
+
+                    ${this.htmlQBody(q, qIdx, isLocked)}
+
+                    ${isLocked ? `
+                        <div class="mt-10 p-6 rounded-2xl border-2 bg-slate-50 border-slate-200 shadow-inner">
+                            <div class="text-lg text-slate-700 font-medium">
+                                <span class="font-black uppercase text-slate-400 text-sm block mb-2 tracking-widest border-b pb-2">GIẢI THÍCH CHI TIẾT:</span>
+                                ${q.exp}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                `;
+            },
+
+            // --- STREAMING_CHUNK: Render Question Types ---
+            htmlQBody(q, qIdx, isLocked) {
+                // 1. Multiple Choice
+                if (q.type === 'MC') return `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        ${q.opts.map((opt, i) => {
+                            const isSel = state.mcSelected[qIdx] === i;
+                            const isCorr = isLocked && i === q.ans;
+                            const isWrongSel = isLocked && isSel && i !== q.ans;
+                            const sOpt = opt.replace(/"/g, '&quot;');
+                            return `<div onclick="${!isLocked ? `App.cMC(${qIdx}, ${i})` : ''}" 
+                                class="p-5 border-2 rounded-2xl text-lg font-medium transition-all flex items-center shadow-sm
+                                ${!isLocked ? 'cursor-pointer hover:border-orange-300 hover:bg-slate-50' : ''}
+                                ${isSel ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100 scale-[1.02]' : 'border-slate-200'}
+                                ${isCorr ? '!border-green-500 !bg-green-100 shadow-[0_0_15px_rgba(34,197,94,0.4)]' : ''}
+                                ${isWrongSel ? '!border-red-500 !bg-red-50' : ''}">
+                                <span class="w-10 h-10 flex items-center justify-center bg-white border-2 rounded-full mr-5 font-black text-slate-500 shrink-0">${String.fromCharCode(65+i)}</span>
+                                <div class="flex-1 break-words break-all">${sOpt}</div>
+                            </div>`
+                        }).join('')}
+                    </div>`;
+                
+                // 2. True/False Cluster
+                if (q.type === 'TF_CLUSTER') return `
+                    <div class="space-y-4">
+                        ${q.statements.map((stmt, i) => {
+                            const ansTrue = state.tfAnswers[qIdx][i] === true;
+                            const ansFalse = state.tfAnswers[qIdx][i] === false;
+                            
+                            let rowClass = 'bg-white border-slate-200';
+                            if (isLocked) {
+                                const isCorrect = state.tfAnswers[qIdx][i] === stmt.ans;
+                                rowClass = isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                            }
+
+                            return `
+                            <div class="flex flex-col xl:flex-row xl:items-center justify-between p-5 border-2 rounded-2xl shadow-sm ${rowClass}">
+                                <div class="font-medium text-slate-800 text-lg flex-1 mb-4 xl:mb-0 xl:pr-6 leading-relaxed">
+                                    <span class="font-black text-orange-600 mr-2">${String.fromCharCode(65+i)}.</span> ${stmt.text}
+                                </div>
+                                <div class="flex gap-3 shrink-0">
+                                    <button onclick="${!isLocked ? `App.cTF(${qIdx}, ${i}, true)` : ''}" 
+                                        class="flex-1 xl:flex-none px-6 py-3 rounded-xl font-black transition-all border-2
+                                        ${ansTrue ? 'bg-green-500 border-green-600 text-white shadow-md scale-105' : 'bg-slate-100 border-slate-200 text-slate-400'}
+                                        ${!isLocked ? 'hover:bg-slate-200 cursor-pointer' : 'cursor-default'}
+                                        ${isLocked && !ansTrue && stmt.ans === true ? 'ring-4 ring-green-300 bg-green-100' : ''} 
+                                    ">ĐÚNG</button>
+                                    
+                                    <button onclick="${!isLocked ? `App.cTF(${qIdx}, ${i}, false)` : ''}" 
+                                        class="flex-1 xl:flex-none px-6 py-3 rounded-xl font-black transition-all border-2
+                                        ${ansFalse ? 'bg-red-500 border-red-600 text-white shadow-md scale-105' : 'bg-slate-100 border-slate-200 text-slate-400'}
+                                        ${!isLocked ? 'hover:bg-slate-200 cursor-pointer' : 'cursor-default'}
+                                        ${isLocked && !ansFalse && stmt.ans === false ? 'ring-4 ring-red-300 bg-red-100' : ''} 
+                                    ">SAI</button>
+                                </div>
+                            </div>
+                            `
+                        }).join('')}
+                    </div>`;
+
+                // 3. Short Answer
+                if (q.type === 'SHORT_ANS') return `
+                    <div class="flex flex-col md:flex-row items-center gap-6 p-8 bg-slate-50 rounded-2xl border-2 shadow-inner">
+                        <span class="font-black text-xl text-slate-600">NHẬP ĐÁP ÁN:</span>
+                        <input type="text" value="${state.fibInput[qIdx]}" ${isLocked ? 'disabled' : ''} onchange="App.cInput(${qIdx}, this.value)" 
+                            placeholder="(Nhập số...)"
+                            class="p-4 border-b-4 border-orange-500 bg-white font-black text-orange-600 text-2xl text-center w-full md:w-64 focus:outline-none shadow-sm rounded-t-xl transition-colors">
+                        <div class="text-sm text-slate-500 font-semibold italic mt-2 md:mt-0 flex flex-col">
+                            <span>(Dùng dấu phẩy hoặc chấm đều được)</span>
+                            ${isLocked ? `<span class="text-green-600 font-black text-lg mt-1">Đáp án đúng: ${q.ans}</span>` : ''}
+                        </div>
+                    </div>`;
+
+                // 4. Matching
+                if (q.type === 'MATCH') {
+                    if (!q.rL) { q.rL = q.pairs.map((p,i)=>({t:p.l,id:i})); q.rR = shuffle(q.pairs.map((p,i)=>({t:p.r,id:i}))); }
+                    return `
+                    <div class="flex flex-col md:flex-row gap-6 w-full">
+                        <div class="flex-1 flex flex-col gap-4">
+                            ${q.rL.map(item => `
+                                <div onclick="${!isLocked ? `App.cML(${qIdx}, ${item.id})` : ''}"
+                                    class="p-4 border-2 rounded-2xl font-semibold flex items-center min-h-[80px] shadow-sm transition-all
+                                    ${!isLocked ? 'cursor-pointer hover:bg-slate-50' : ''}
+                                    ${state.matchSelectedLeft[qIdx] === item.id ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100' : 'bg-white'}
+                                    ${isLocked && state.matchPairs[qIdx][item.id] === item.id ? '!border-green-500 !bg-green-50' : ''}
+                                    ${isLocked && state.matchPairs[qIdx][item.id] !== undefined && state.matchPairs[qIdx][item.id] !== item.id ? '!border-red-500 !bg-red-50' : ''}">
+                                    <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-black flex items-center justify-center mr-3 shrink-0">${item.id+1}</div>
+                                    <div>${item.t}</div>
+                                </div>`).join('')}
+                        </div>
+                        <div class="hidden md:flex flex-col justify-around w-12 items-center">
+                            ${q.rL.map(item => {
+                                const pId = state.matchPairs[qIdx][item.id];
+                                const txt = pId !== undefined ? String.fromCharCode(65 + q.rR.findIndex(r => r.id === pId)) : '';
+                                return `<div class="w-10 h-10 flex items-center justify-center font-black rounded-full shadow-md transition-colors ${txt ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-300'}">${txt || '?'}</div>`;
+                            }).join('')}
+                        </div>
+                        <div class="flex-1 flex flex-col gap-4">
+                            ${q.rR.map((item, idx) => {
+                                const isSel = Object.values(state.matchPairs[qIdx]).includes(item.id);
+                                return `<div onclick="${!isLocked ? `App.cMR(${qIdx}, ${item.id})` : ''}"
+                                    class="p-4 border-2 rounded-2xl font-semibold flex items-center min-h-[80px] shadow-sm transition-all
+                                    ${!isLocked ? 'cursor-pointer hover:bg-slate-50' : ''}
+                                    ${isSel ? 'border-indigo-300 bg-indigo-50 opacity-60' : 'bg-white'}">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-black flex items-center justify-center mr-3 shrink-0">${String.fromCharCode(65+idx)}</div>
+                                    <div>${item.t}</div>
+                                </div>`
+                            }).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                // 5. Drag & Drop (Click to match)
+                if (q.type === 'DD') {
+                    if(!q.rOpts) q.rOpts = shuffle([...q.opts]);
+                    let fText = q.text;
+                    Object.keys(q.correct).forEach(k => {
+                        const ans = state.ddAnswers[qIdx][k];
+                        const content = ans ? ans.text : '...';
+                        const cls = ans ? 'filled' : '';
+                        fText = fText.replace(`[${k}]`, `<span class="ctm-target ${cls}" onclick="${!isLocked ? `App.cDDT(${qIdx}, '${k}')` : ''}">${content}</span>`);
+                    });
+                    return `
+                    <div class="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl text-xl leading-[2.2] mb-8 shadow-inner font-medium">
+                        ${fText}
+                    </div>
+                    <div class="flex flex-wrap gap-4 p-6 bg-white border-2 border-dashed border-slate-300 rounded-3xl justify-center items-center relative">
+                        <div class="absolute -top-4 bg-white px-4 font-black text-slate-400 text-sm tracking-widest uppercase">Danh Sách Từ Gợi Ý</div>
+                        ${q.rOpts.map((opt, i) => {
+                            const isUsed = Object.values(state.ddAnswers[qIdx]).some(a => a.idx === i);
+                            const isActive = state.ddActiveSource[qIdx] !== null && state.ddActiveSource[qIdx].idx === i;
+                            const sOpt = opt.replace(/"/g, '&quot;');
+                            return `<div class="ctm-source text-lg ${isUsed ? 'used' : ''} ${isActive ? 'active' : ''}" data-idx="${i}" data-rawtext="${sOpt}" onclick="${!isLocked ? `App.cDDS(${qIdx}, this)` : ''}">${opt}</div>`
+                        }).join('')}
+                    </div>
+                    ${!isLocked ? `<div class="text-center mt-4 text-orange-500 font-bold italic text-sm">👆 Hướng dẫn: Chạm vào từ gợi ý cho sáng lên, sau đó chạm vào ô trống để điền.</div>` : ''}`;
+                }
+            },
+
+            // --- STREAMING_CHUNK: Interactions ---
+            cMC(qIdx, i) { state.mcSelected[qIdx] = i; this.render(); },
+            cTF(qIdx, stmtIdx, boolVal) { state.tfAnswers[qIdx][stmtIdx] = boolVal; this.render(); },
+            cInput(qIdx, val) { state.fibInput[qIdx] = val; this.render(); }, // Gọi render để update thanh navbar
+            
+            cML(qIdx, id) { state.matchSelectedLeft[qIdx] = id; this.render(); },
+            cMR(qIdx, rId) {
+                if (state.matchSelectedLeft[qIdx] === null) return alertMsg("Hướng dẫn", "Chọn 1 mục cột Trái trước (1, 2, 3...).");
+                for (let k in state.matchPairs[qIdx]) if (state.matchPairs[qIdx][k] === rId) delete state.matchPairs[qIdx][k];
+                state.matchPairs[qIdx][state.matchSelectedLeft[qIdx]] = rId;
+                state.matchSelectedLeft[qIdx] = null;
+                this.render();
+            },
+            
+            cDDS(qIdx, el) {
+                if(el.classList.contains('used')) return;
+                state.ddActiveSource[qIdx] = { idx: parseInt(el.dataset.idx), text: el.dataset.rawtext };
+                this.render();
+            },
+            cDDT(qIdx, tId) {
+                if (!state.ddActiveSource[qIdx]) { if (state.ddAnswers[qIdx][tId]) delete state.ddAnswers[qIdx][tId]; } 
+                else { state.ddAnswers[qIdx][tId] = state.ddActiveSource[qIdx]; state.ddActiveSource[qIdx] = null; }
+                this.render();
+            },
+
+            // --- STREAMING_CHUNK: Evaluation ---
+            checkAllAnswers() {
+                for(let qIdx = 0; qIdx < state.questions.length; qIdx++) {
+                    const q = state.questions[qIdx];
+                    let isCorr = false;
+                    
+                    if (q.type === 'MC') isCorr = state.mcSelected[qIdx] === q.ans;
+                    
+                    if (q.type === 'TF_CLUSTER') {
+                        const keys = Object.keys(state.tfAnswers[qIdx]);
+                        if (keys.length === q.statements.length) {
+                            isCorr = q.statements.every((stmt, i) => state.tfAnswers[qIdx][i] === stmt.ans);
+                        }
+                    }
+                    
+                    if (q.type === 'SHORT_ANS') {
+                        const userStr = state.fibInput[qIdx].toString().trim().replace(',', '.');
+                        const ansStr = q.ans.toString().trim().replace(',', '.');
+                        const userVal = parseFloat(userStr);
+                        const ansVal = parseFloat(ansStr);
+                        isCorr = (!isNaN(userVal) && userVal === ansVal) || (userStr.toLowerCase() === ansStr.toLowerCase());
+                    }
+                    
+                    if (q.type === 'MATCH') {
+                        isCorr = Object.keys(q.pairs).length > 0 && Object.keys(q.pairs).every((_, i) => state.matchPairs[qIdx][i] === i);
+                    }
+                    
+                    if (q.type === 'DD') {
+                        isCorr = Object.keys(q.correct).length > 0 && Object.keys(q.correct).every(k => state.ddAnswers[qIdx][k] && state.ddAnswers[qIdx][k].text === q.correct[k]);
+                    }
+                    
+                    state.isCorrectArr[qIdx] = isCorr;
+                }
+                state.score = state.isCorrectArr.filter(x => x).length;
+            },
+
+            forceEnd() {
+                clearInterval(state.timerId);
+                this.end(true);
+            },
+
+            reqEnd() {
+                document.getElementById('confirm-title').innerText = "Xác nhận Nộp Bài";
+                document.getElementById('confirm-body').innerText = "Bạn có chắc chắn muốn nộp bài? Các câu chưa làm sẽ không có điểm.";
+                document.getElementById('confirm-btn').onclick = () => {
+                    hideModal('confirm-modal');
+                    App.end(true); 
+                };
+                showModal('confirm-modal');
+            },
+
+            end(skipConfirm = false) {
+                if(!skipConfirm) {
+                    this.reqEnd();
+                    return;
+                }
+                clearInterval(state.timerId);
+                
+                this.checkAllAnswers();
+                state.isSubmitted = true;
+                
+                const rec = { type: state.userType, name: state.userName, score: state.score, time: 600 - state.globalTimeLeft, date: new Date().toLocaleString('vi-VN') };
+                const idx = state.history.findIndex(x => x.name === state.userName && x.type === state.userType);
+                if(idx !== -1) state.history[idx] = rec; else state.history.push(rec);
+                localStorage.setItem('vatli_b3_conang_2025_v3', JSON.stringify(state.history));
+                
+                if (state.score >= 20) { triggerConfetti(); playSfx('correct'); } else playSfx('wrong');
+                
+                // Cuộn lên đầu để xem điểm
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                this.render();
+            },
+
+            // --- STREAMING_CHUNK: Admin Panel ---
+            login(role) {
+                const p = document.getElementById(role === 'TEA' ? 'p-tea' : 'p-par').value;
+                if ((role === 'TEA' && p === '123') || (role === 'PAR' && p === '123456')) {
+                    hideModal(role === 'TEA' ? 'mod-tea' : 'mod-par');
+                    state.screen = 'ADMIN'; state.admRole = role; state.admTab = role === 'TEA' ? 'GROUP' : 'INDIV';
+                    this.render();
+                } else alertMsg("Lỗi bảo mật", "Sai mật khẩu!");
+            },
+            
+            switchAdminTab(tab) {
+                state.admTab = tab;
+                this.render();
+            },
+
+            htmlAdmin() {
+                // Tự động tải lại dữ liệu mới nhất từ localStorage để đồng bộ thời gian thực
+                state.history = JSON.parse(localStorage.getItem('vatli_b3_conang_2025_v3') || '[]');
+
+                const gs = state.history.filter(x => x.type === 'GROUP').sort((a,b) => b.score - a.score || a.time - b.time);
+                const is = state.history.filter(x => x.type === 'INDIV').sort((a,b) => b.score - a.score || a.time - b.time);
+
+                return `
+                <div class="min-h-screen bg-slate-50 p-4 md:p-10 w-full z-10">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-2xl md:text-3xl font-black text-slate-800 uppercase">${state.admRole === 'TEA' ? '👨‍🏫 BẢNG ĐIỀU KHIỂN - GIÁO VIÊN' : '👨‍👩‍👧 KẾT QUẢ - PHỤ HUYNH'}</h2>
+                            <div>
+                                <button onclick="App.render()" class="px-4 md:px-6 py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-xl border border-blue-200 shadow-sm mr-2 md:mr-3 transition-colors">Làm mới</button>
+                                <button onclick="location.reload()" class="px-4 md:px-6 py-3 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-xl border border-red-200 shadow-sm transition-colors">Đăng xuất</button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-3xl shadow-xl border overflow-hidden">
+                            <div class="flex flex-wrap bg-slate-100 border-b-2">
+                                ${state.admRole === 'TEA' ? `<button onclick="App.switchAdminTab('GROUP')" class="flex-1 py-4 md:py-5 font-black text-sm md:text-lg ${state.admTab==='GROUP'?'text-orange-600 bg-white border-b-4 border-b-orange-500':'text-slate-500'}">THỐNG KÊ NHÓM</button>` : ''}
+                                <button onclick="App.switchAdminTab('INDIV')" class="flex-1 py-4 md:py-5 font-black text-sm md:text-lg ${state.admTab==='INDIV'?'text-orange-600 bg-white border-b-4 border-b-orange-500':'text-slate-500'}">THỐNG KÊ CÁ NHÂN</button>
+                                ${state.admRole === 'TEA' ? `<button onclick="App.switchAdminTab('DE')" class="flex-1 py-4 md:py-5 font-black text-sm md:text-lg ${state.admTab==='DE'?'text-orange-600 bg-white border-b-4 border-b-orange-500':'text-slate-500'}">XEM TOÀN BỘ ĐỀ</button>` : ''}
+                            </div>
+                            
+                            <div class="p-4 md:p-8 overflow-x-auto">
+                                ${(state.admTab === 'GROUP' || state.admTab === 'INDIV') ? `
+                                    <table class="w-full text-left border-collapse min-w-[600px]">
+                                        <thead><tr class="bg-slate-50 text-slate-500 uppercase text-xs md:text-sm"><th class="p-4 md:p-5 font-black">Hạng</th><th class="p-4 md:p-5 font-black">Tên / Thành viên</th><th class="p-4 md:p-5 font-black text-center">Điểm</th><th class="p-4 md:p-5 font-black text-right">Thời gian</th><th class="p-4 md:p-5 font-black text-right">Cập nhật lúc</th></tr></thead>
+                                        <tbody>
+                                            ${(state.admTab === 'GROUP' ? gs : is).map((x, i) => `
+                                                <tr class="border-b hover:bg-orange-50">
+                                                    <td class="p-4 md:p-5 font-black text-slate-400 text-lg md:text-xl">#${i+1}</td>
+                                                    <td class="p-4 md:p-5 font-bold text-slate-700">${x.name}</td>
+                                                    <td class="p-4 md:p-5 font-black text-xl md:text-2xl text-orange-500 text-center">${x.score}/25</td>
+                                                    <td class="p-4 md:p-5 font-bold text-slate-500 text-right">${x.time}s</td>
+                                                    <td class="p-4 md:p-5 text-xs md:text-sm font-semibold text-slate-400 text-right">${x.date}</td>
+                                                </tr>
+                                            `).join('')}
+                                            ${(state.admTab === 'GROUP' ? gs : is).length === 0 ? `<tr><td colspan="5" class="p-10 text-center text-slate-400 font-bold text-lg">Chưa có dữ liệu ${state.admTab === 'GROUP' ? 'Nhóm' : 'Cá nhân'}.</td></tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                ` : ''}
+
+                                ${state.admTab === 'DE' ? `
+                                    <div class="space-y-6 md:space-y-8">
+                                        ${RAW_QUESTION_BANK.map((q, i) => `
+                                            <div class="p-6 md:p-8 bg-slate-50 rounded-2xl border shadow-sm">
+                                                <div class="font-bold text-lg md:text-xl mb-4">Câu ${i+1} [${q.type}]: ${q.q}</div>
+                                                ${q.type === 'MC' ? `<div class="mb-4 text-slate-500 font-medium">Phương án: ${q.opts.join(' | ')}</div><div class="font-black text-green-600 text-lg">Đúng: ${q.opts[q.ans]}</div>` : ''}
+                                                ${q.type === 'TF_CLUSTER' ? `<div class="mb-4"><ul class="list-disc ml-6">${q.statements.map(s => `<li class="mb-2">${s.text} <span class="font-bold text-${s.ans ? 'green' : 'red'}-600">(${s.ans ? 'ĐÚNG' : 'SAI'})</span></li>`).join('')}</ul></div>` : ''}
+                                                ${q.type === 'SHORT_ANS' ? `<div class="font-black text-green-600 text-lg">Điền số: ${q.ans}</div>` : ''}
+                                                ${q.type === 'MATCH' ? `<div class="font-black text-green-600 text-lg mb-2">Ghép:</div><ul class="list-disc ml-6 font-medium space-y-1">${q.pairs.map(p => `<li>${p.l} ➔ ${p.r}</li>`).join('')}</ul>` : ''}
+                                                ${q.type === 'DD' ? `<div class="mb-4 text-slate-500 font-medium">Gốc: ${q.text}</div><div class="font-black text-green-600 text-lg mb-2">Từ điền:</div><ul class="list-disc ml-6 font-medium space-y-1">${Object.keys(q.correct).map(k=>`<li>[${k}]: ${q.correct[k]}</li>`).join('')}</ul>` : ''}
+                                                <div class="mt-5 p-4 md:p-5 bg-orange-50 text-orange-900 rounded-xl border border-orange-200 font-medium leading-relaxed"><strong class="uppercase">Giải thích:</strong> ${q.exp}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            },
+
+            htmlModals() {
+                return `
+                <div id="mod-tea" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border">
+                        <h3 class="text-2xl font-black mb-6 text-center uppercase">Giáo Viên</h3>
+                        <input type="password" id="p-tea" class="w-full p-4 border-2 rounded-xl mb-8 bg-slate-50 focus:border-orange-500 font-bold text-center outline-none">
+                        <div class="flex gap-4">
+                            <button onclick="hideModal('mod-tea')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600">Hủy</button>
+                            <button onclick="App.login('TEA')" class="flex-1 py-4 bg-orange-500 hover:bg-orange-600 font-bold rounded-xl text-white">Vào</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mod-par" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border">
+                        <h3 class="text-2xl font-black mb-6 text-center uppercase">Phụ Huynh</h3>
+                        <input type="password" id="p-par" class="w-full p-4 border-2 rounded-xl mb-8 bg-slate-50 focus:border-orange-500 font-bold text-center outline-none">
+                        <div class="flex gap-4">
+                            <button onclick="hideModal('mod-par')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600">Hủy</button>
+                            <button onclick="App.login('PAR')" class="flex-1 py-4 bg-orange-500 hover:bg-orange-600 font-bold rounded-xl text-white">Vào</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="msg-modal" class="modal-overlay" style="z-index: 99999;">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-t-red-500 text-center">
+                        <h3 id="msg-title" class="text-2xl font-black mb-3 text-slate-800">Thông báo</h3>
+                        <p id="msg-body" class="text-slate-600 mb-8 font-medium text-lg"></p>
+                        <button onclick="hideModal('msg-modal')" class="w-full py-4 bg-red-600 hover:bg-red-700 font-black rounded-xl text-white">Đã hiểu</button>
+                    </div>
+                </div>
+                
+                <div id="confirm-modal" class="modal-overlay" style="z-index: 99999;">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-t-orange-500 text-center">
+                        <h3 id="confirm-title" class="text-2xl font-black mb-3 text-slate-800">Xác nhận</h3>
+                        <p id="confirm-body" class="text-slate-600 mb-8 font-medium text-lg"></p>
+                        <div class="flex gap-4">
+                            <button onclick="hideModal('confirm-modal')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600 transition-colors">Hủy</button>
+                            <button id="confirm-btn" class="flex-1 py-4 bg-orange-500 hover:bg-orange-600 font-black rounded-xl text-white transition-colors shadow-md">Đồng ý</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        };
+
+        window.App = App;
+        window.onload = () => App.render();
+    </script>
+</body>
+</html>

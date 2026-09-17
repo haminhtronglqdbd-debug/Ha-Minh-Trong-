@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Tương Tác Vật Lí - Tốc Độ và Vận Tốc</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Cấu hình MathJax tối ưu chống lag -->
+    <script>
+        window.MathJax = {
+            startup: { typeset: false },
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; overflow-x: hidden; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        /* CTM (Click-to-match) Styles */
+        .ctm-target { 
+            display: inline-flex; align-items: center; justify-content: center; 
+            min-width: 100px; min-height: 38px; padding: 4px 14px; margin: 0 6px;
+            border: 2px dashed #94a3b8; border-radius: 8px; 
+            background-color: #f1f5f9; color: #2563eb; font-weight: 700;
+            cursor: pointer; vertical-align: middle; transition: all 0.2s;
+        }
+        .ctm-target:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .ctm-target.filled { border-style: solid; border-color: #3b82f6; background-color: #dbeafe; box-shadow: 0 2px 4px rgba(59,130,246,0.2); }
+        
+        .ctm-source {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 10px 20px; margin: 6px; border-radius: 9999px;
+            background-color: #e0e7ff; color: #3730a3; font-weight: 700; border: 2px solid transparent;
+            cursor: pointer; transition: all 0.2s; user-select: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .ctm-source:hover:not(.used) { background-color: #c7d2fe; transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .ctm-source.active { border-color: #4f46e5; background-color: #c7d2fe; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3); transform: scale(1.05); }
+        .ctm-source.used { opacity: 0.3; cursor: not-allowed; transform: none; background-color: #f1f5f9; color: #94a3b8; box-shadow: none; }
+        
+        /* Chống lỗi kéo thả khi có MathJax */
+        .ctm-source mjx-container, .ctm-target mjx-container { pointer-events: none; }
+        
+        /* FIX: Ngăn Tailwind tự động ép thẻ svg của MathJax thành block (gây lỗi tự xuống dòng) */
+        mjx-container { display: inline-block !important; }
+        mjx-container svg { display: inline-block !important; }
+        mjx-container[display="true"] { display: block !important; margin: 1em 0 !important; }
+        mjx-container[display="true"] svg { display: block !important; margin: 0 auto !important; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        /* Animation cho Feedback */
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-popIn { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body>
+
+    <div id="app-root" class="min-h-screen w-full flex flex-col bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+    <script>
+        const QUESTION_BANK = [
+            // DẠNG 1: TRẮC NGHIỆM (MC) - 10 Câu
+            { type: 'MC', q: 'Đại lượng cho biết độ nhanh, chậm của chuyển động được gọi là:', opts: ['Độ dịch chuyển.', 'Quãng đường.', 'Tốc độ.', 'Gia tốc.'], ans: 2, exp: 'Theo SGK, trong đời sống, tốc độ là đại lượng dùng để mô tả sự nhanh chậm của chuyển động.' },
+            { type: 'MC', q: 'Công thức tính tốc độ trung bình là:', opts: ['$v = \\frac{\\Delta d}{\\Delta t}$', '$v = \\frac{s}{t}$', '$v = s \\cdot t$', '$v = \\frac{t}{s}$'], ans: 1, exp: 'Tốc độ trung bình bằng tổng quãng đường chia cho thời gian đi hết quãng đường đó: $v = \\frac{s}{t}$.' },
+            { type: 'MC', q: 'Công thức tính vận tốc trung bình là:', opts: ['$\\vec{v} = \\frac{s}{t}$', '$\\vec{v} = \\frac{\\Delta \\vec{d}}{\\Delta t}$', '$v = \\frac{\\Delta d}{\\Delta t}$', '$\\vec{v} = s \\cdot t$'], ans: 1, exp: 'Vận tốc trung bình là đại lượng vectơ, được tính bằng thương số của độ dịch chuyển và thời gian: $\\vec{v} = \\frac{\\Delta \\vec{d}}{\\Delta t}$.' },
+            { type: 'MC', q: 'Tốc độ tức thời là:', opts: ['Tốc độ trung bình trên cả quãng đường dài.', 'Tốc độ của vật tại một thời điểm xác định.', 'Vận tốc của vật tại một thời điểm xác định.', 'Đại lượng vectơ cho biết hướng chuyển động.'], ans: 1, exp: 'Tốc độ tức thời là tốc độ tại một thời điểm xác định, ví dụ như số chỉ của tốc kế trên xe máy.' },
+            { type: 'MC', q: 'Đại lượng nào sau đây là đại lượng vô hướng?', opts: ['Độ dịch chuyển.', 'Vận tốc trung bình.', 'Vận tốc tức thời.', 'Tốc độ trung bình.'], ans: 3, exp: 'Tốc độ trung bình tính bằng quãng đường (vô hướng) chia cho thời gian (vô hướng) nên nó là đại lượng vô hướng.' },
+            { type: 'MC', q: 'Trong trường hợp nào tốc độ trung bình có độ lớn bằng vận tốc trung bình?', opts: ['Vật chuyển động trên đường cong.', 'Vật chuyển động tròn.', 'Vật chuyển động thẳng và không đổi chiều.', 'Vật chuyển động thẳng và có đổi chiều.'], ans: 2, exp: 'Khi vật chuyển động thẳng và không đổi chiều, độ lớn của độ dịch chuyển bằng quãng đường đi được ($\\Delta d = s$), nên tốc độ bằng độ lớn vận tốc.' },
+            { type: 'MC', q: 'Số chỉ của tốc kế trên ô tô đang chạy cho ta biết đại lượng nào?', opts: ['Tốc độ trung bình.', 'Vận tốc trung bình.', 'Tốc độ tức thời.', 'Vận tốc tức thời.'], ans: 2, exp: 'Tốc kế đo tốc độ tại chính thời điểm người lái xe đọc số, do đó nó chỉ tốc độ tức thời.' },
+            { type: 'MC', q: 'Hai vận tốc $\\vec{v}_1$ và $\\vec{v}_2$ vuông góc với nhau. Độ lớn của vận tốc tổng hợp $\\vec{v}$ được tính bằng công thức:', opts: ['$v = v_1 + v_2$', '$v = |v_1 - v_2|$', '$v = \\sqrt{v_1^2 + v_2^2}$', '$v = v_1 \\cdot v_2$'], ans: 2, exp: 'Áp dụng định lí Pytago cho tam giác vuông tạo bởi 2 vectơ vuông góc: $v = \\sqrt{v_1^2 + v_2^2}$.' },
+            { type: 'MC', q: 'Công thức cộng vận tốc trong trường hợp tổng quát là:', opts: ['$\\vec{v}_{1,3} = \\vec{v}_{1,2} + \\vec{v}_{2,3}$', '$v_{1,3} = v_{1,2} + v_{2,3}$', '$\\vec{v}_{1,3} = \\vec{v}_{1,2} - \\vec{v}_{2,3}$', '$\\vec{v}_{1,2} = \\vec{v}_{1,3} + \\vec{v}_{2,3}$'], ans: 0, exp: 'Theo SGK, công thức cộng vectơ vận tốc là: Vận tốc tuyệt đối = Vận tốc tương đối + Vận tốc kéo theo ($\\vec{v}_{1,3} = \\vec{v}_{1,2} + \\vec{v}_{2,3}$).' },
+            { type: 'MC', q: 'Một hành khách đi dọc theo toa tàu. Vận tốc của hành khách đối với mặt đường được gọi là:', opts: ['Vận tốc tương đối.', 'Vận tốc kéo theo.', 'Vận tốc tuyệt đối.', 'Tốc độ tức thời.'], ans: 2, exp: 'Vận tốc của vật so với hệ quy chiếu đứng yên (mặt đường) là vận tốc tuyệt đối ($\\vec{v}_{1,3}$).' },
+
+            // DẠNG 2: ĐIỀN KHUYẾT (FIB) - 5 Câu
+            { type: 'FIB', q: 'Một người chạy cự li $100$ m mất $10$ s. Tốc độ trung bình của người đó là bao nhiêu m/s?', ans: '10', exp: 'Áp dụng công thức $v = \\frac{s}{t} = \\frac{100}{10} = 10$ m/s.' },
+            { type: 'FIB', q: 'Một ô tô đi được quãng đường $120$ km trong thời gian $2$ giờ. Tốc độ trung bình của ô tô là bao nhiêu km/h?', ans: '60', exp: 'Tốc độ $v = \\frac{s}{t} = \\frac{120}{2} = 60$ km/h.' },
+            { type: 'FIB', q: 'Một thuyền chạy xuôi dòng nước. Vận tốc thuyền so với nước là $5$ m/s, vận tốc nước so với bờ là $2$ m/s. Vận tốc của thuyền so với bờ là bao nhiêu m/s?', ans: '7', exp: 'Cùng chiều nên cộng độ lớn: $v_{1,3} = v_{1,2} + v_{2,3} = 5 + 2 = 7$ m/s.' },
+            { type: 'FIB', q: 'Một thuyền chạy ngược dòng nước. Vận tốc thuyền so với nước là $6$ m/s, vận tốc nước so với bờ là $2$ m/s. Vận tốc của thuyền so với bờ là bao nhiêu m/s?', ans: '4', exp: 'Ngược chiều nên trừ độ lớn: $v_{1,3} = |v_{1,2} - v_{2,3}| = 6 - 2 = 4$ m/s.' },
+            { type: 'FIB', q: 'Ca nô chạy ngang một con sông (vuông góc với dòng chảy). Vận tốc ca nô so với nước là $4$ m/s, dòng nước chảy với vận tốc $3$ m/s. Vận tốc ca nô so với bờ là bao nhiêu m/s?', ans: '5', exp: 'Hai vận tốc vuông góc, dùng Pytago: $v = \\sqrt{4^2 + 3^2} = \\sqrt{25} = 5$ m/s.' },
+
+            // DẠNG 3: GHÉP NỐI (MATCH) - 5 Câu
+            { type: 'MATCH', q: 'Ghép các đại lượng với tính chất tương ứng:', pairs: [ { l: 'Quãng đường', r: 'Đại lượng vô hướng, luôn dương' }, { l: 'Độ dịch chuyển', r: 'Đại lượng vectơ, chỉ vị trí đầu và cuối' }, { l: 'Tốc độ', r: 'Đại lượng vô hướng, đặc trưng cho sự nhanh chậm' } ], exp: 'Quãng đường và Tốc độ là vô hướng. Độ dịch chuyển là vectơ.' },
+            { type: 'MATCH', q: 'Ghép các kí hiệu với ý nghĩa trong công thức cộng vận tốc:', pairs: [ { l: '$\\vec{v}_{1,3}$', r: 'Vận tốc tuyệt đối (vật so với hệ QC đứng yên)' }, { l: '$\\vec{v}_{1,2}$', r: 'Vận tốc tương đối (vật so với hệ QC chuyển động)' }, { l: '$\\vec{v}_{2,3}$', r: 'Vận tốc kéo theo (hệ QC chuyển động so với hệ QC đứng yên)' } ], exp: 'Quy ước chuẩn theo SGK: 1 là vật, 2 là hệ chuyển động, 3 là hệ đứng yên.' },
+            { type: 'MATCH', q: 'Ghép công thức với trường hợp chuyển động:', pairs: [ { l: '$v = v_1 + v_2$', r: 'Hai chuyển động cùng phương, cùng chiều' }, { l: '$v = |v_1 - v_2|$', r: 'Hai chuyển động cùng phương, ngược chiều' }, { l: '$v = \\sqrt{v_1^2 + v_2^2}$', r: 'Hai chuyển động vuông góc với nhau' } ], exp: 'Dựa vào tính chất cộng vectơ khi cùng chiều, ngược chiều và vuông góc.' },
+            { type: 'MATCH', q: 'Ghép tên đại lượng với công thức tính:', pairs: [ { l: 'Tốc độ trung bình', r: '$v = \\frac{s}{t}$' }, { l: 'Vận tốc trung bình', r: '$\\vec{v} = \\frac{\\Delta \\vec{d}}{\\Delta t}$' }, { l: 'Vận tốc tức thời', r: '$\\vec{v}_t = \\frac{\\Delta \\vec{d}}{\\Delta t}$ với $\\Delta t$ rất nhỏ' } ], exp: 'Tốc độ dùng quãng đường $s$. Vận tốc dùng độ dịch chuyển $\\Delta \\vec{d}$.' },
+            { type: 'MATCH', q: 'Ghép các khái niệm để so sánh:', pairs: [ { l: 'Số chỉ tốc kế trên ô tô', r: 'Tốc độ tức thời' }, { l: 'Tỉ số quãng đường và thời gian', r: 'Tốc độ trung bình' }, { l: 'Có tính đến hướng chuyển động', r: 'Vận tốc' } ], exp: 'Tốc kế đo lúc hiện tại. Vận tốc là đại lượng vectơ nên phải xét hướng.' },
+
+            // DẠNG 4: KÉO THẢ (CLICK-TO-MATCH) - 5 Câu
+            { type: 'DD', q: 'Hoàn thành nhận định sau về Tốc độ và Vận tốc:', text: 'Tốc độ là một đại lượng [0], được tính bằng thương số của quãng đường và [1]. Trong khi đó, vận tốc là một đại lượng [2], được tính bằng thương số của độ dịch chuyển và thời gian.', correct: {'0': 'vô hướng', '1': 'thời gian', '2': 'vectơ'}, opts: ['vô hướng', 'thời gian', 'vectơ', 'quãng đường'], exp: 'Tốc độ không có hướng (vô hướng) và tính theo $s/t$. Vận tốc có hướng (vectơ) tính theo $d/t$.' },
+            { type: 'DD', q: 'Hoàn thành câu về đặc điểm của vận tốc:', text: 'Vận tốc là một đại lượng vectơ nên vectơ vận tốc có: Gốc nằm trên vật chuyển động; Hướng là hướng của [0]; Độ dài tỉ lệ với [1] của vận tốc.', correct: {'0': 'độ dịch chuyển', '1': 'độ lớn'}, opts: ['độ dịch chuyển', 'độ lớn', 'quãng đường', 'thời gian'], exp: 'Theo SGK, vectơ vận tốc cùng hướng với độ dịch chuyển và độ dài tỉ lệ với độ lớn vận tốc.' },
+            { type: 'DD', q: 'Hoàn thành câu về tốc độ tức thời:', text: 'Khái niệm [0] tức thời liên quan đến phép tính đạo hàm của môn Toán sẽ được học ở lớp 11. Có thể coi tốc độ tức thời là tốc độ trung bình trong một [1] rất ngắn.', correct: {'0': 'tốc độ', '1': 'khoảng thời gian'}, opts: ['tốc độ', 'khoảng thời gian', 'độ dịch chuyển', 'quãng đường'], exp: 'Khi $\\Delta t$ tiến tới $0$, tốc độ trung bình trở thành tốc độ tức thời.' },
+            { type: 'DD', q: 'Điền từ vào chỗ trống công thức cộng vận tốc:', text: 'Trong công thức $\\vec{v}_{1,3} = \\vec{v}_{1,2} + \\vec{v}_{2,3}$, $\\vec{v}_{1,2}$ là vận tốc của vật (1) đối với [0]; $\\vec{v}_{2,3}$ là vận tốc của vật (2) đối với [1].', correct: {'0': 'vật (2)', '1': 'vật (3)'}, opts: ['vật (2)', 'vật (3)', 'hệ đứng yên', 'chuyển động'], exp: 'Chỉ số tương ứng: (1,2) là 1 so với 2. (2,3) là 2 so với 3.' },
+            { type: 'DD', q: 'Xác định nhanh chậm:', text: 'Để xác định độ nhanh chậm của chuyển động, người ta có thể so sánh [0] đi được trong cùng một thời gian, hoặc so sánh thời gian để đi cùng một [1].', correct: {'0': 'quãng đường', '1': 'quãng đường'}, opts: ['quãng đường', 'thời gian', 'vận tốc', 'độ dịch chuyển'], exp: 'Hai cách đo nhanh chậm: Cùng thời gian ai đi xa hơn thì nhanh hơn, hoặc cùng quãng đường ai đi ít thời gian hơn thì nhanh hơn.' }
+        ];
+
+        const state = {
+            screen: 'LOGIN', // LOGIN, QUIZ, RESULT, ADMIN
+            userType: null, // GROUP, INDIVIDUAL, TEACHER, PARENT
+            userName: '',
+            
+            questions: [], 
+            currentQIndex: 0,
+            score: 0,
+            startTime: 0,
+            timeSpentTotal: 0,
+            
+            timeLeft: 30,
+            timerId: null,
+            
+            // Dữ liệu câu trả lời hiện tại
+            selectedMcOpt: null,
+            fibAnswer: '',
+            matchLeftSelected: null,
+            matchPairs: {}, 
+            ddActiveSource: null,
+            ddAnswers: {}, 
+            
+            isAnswering: true,
+            lastResult: false,
+            
+            history: JSON.parse(localStorage.getItem('physics_history_v5') || '[]')
+        };
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        let toneStarted = false;
+        async function playSound(type) {
+            if (typeof Tone === 'undefined') return;
+            try {
+                if (!toneStarted) { await Tone.start(); toneStarted = true; }
+                const synth = new Tone.Synth().toDestination();
+                if (type === 'correct') {
+                    synth.triggerAttackRelease("C5", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("E5", "8n"), 150);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("G3", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("C3", "4n"), 150);
+                }
+            } catch(e) { console.warn("Lỗi Tone.js:", e); }
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti !== 'undefined') {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            }
+        }
+
+        function triggerMathJax() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([document.getElementById('app-root')]).catch(err => console.error(err));
+            }
+        }
+
+        // Custom Modals
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function hideModal(id) { document.getElementById(id).classList.remove('active'); 
+            // Xóa pass sau khi đóng
+            const inp = document.querySelector(`#${id} input[type="password"]`);
+            if(inp) inp.value = '';
+        }
+        function alertMsg(title, body) {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-body').innerText = body;
+            showModal('msg-modal');
+        }
+
+        const App = {
+            render() {
+                const root = document.getElementById('app-root');
+                let html = '';
+                
+                if (state.screen === 'LOGIN') html = this.htmlLogin();
+                else if (state.screen === 'QUIZ') html = this.htmlQuiz();
+                else if (state.screen === 'RESULT') html = this.htmlResult();
+                else if (state.screen === 'ADMIN') html = this.htmlAdmin();
+                
+                html += this.htmlModals();
+                root.innerHTML = html;
+                triggerMathJax();
+            },
+
+            // --- HTML LOGIN ---
+            htmlLogin() {
+                const tab = state.loginTab || 'GROUP';
+                return `
+                <div class="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
+                    <div class="text-center mb-10">
+                        <h1 class="text-5xl md:text-6xl font-black mb-4 text-blue-900 drop-shadow-sm tracking-tight uppercase">Vật Lí Tương Tác</h1>
+                        <p class="text-xl font-bold text-blue-600 bg-white px-6 py-2 rounded-full shadow-sm inline-block">Chương II - Bài 5: Tốc độ và Vận tốc</p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-3xl w-full max-w-xl">
+                        <div class="flex border-b-2 border-slate-200 mb-8">
+                            <button onclick="App.setLoginTab('GROUP')" class="flex-1 py-4 font-bold text-lg transition-all ${tab === 'GROUP' ? 'border-b-4 border-blue-600 text-blue-700' : 'text-slate-400 hover:text-slate-600'}">LÀM THEO NHÓM</button>
+                            <button onclick="App.setLoginTab('INDIV')" class="flex-1 py-4 font-bold text-lg transition-all ${tab === 'INDIV' ? 'border-b-4 border-blue-600 text-blue-700' : 'text-slate-400 hover:text-slate-600'}">LÀM CÁ NHÂN</button>
+                        </div>
+                        
+                        ${tab === 'GROUP' ? `
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block font-bold mb-2 text-slate-700">Chọn Nhóm</label>
+                                    <select id="l-group" class="w-full p-4 border-2 border-slate-200 rounded-xl bg-slate-50 focus:border-blue-500 outline-none font-semibold text-lg">
+                                        ${[...Array(12)].map((_, i) => `<option value="${i+1}">Nhóm ${i+1}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-2 text-slate-700">Thành viên (2-4 người, cách bằng dấu phẩy)</label>
+                                    <input type="text" id="l-members" class="w-full p-4 border-2 border-slate-200 rounded-xl bg-slate-50 focus:border-blue-500 outline-none font-semibold text-lg" placeholder="VD: An, Bình, Châu">
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block font-bold mb-2 text-slate-700">Họ và Tên</label>
+                                    <input type="text" id="l-name" class="w-full p-4 border-2 border-slate-200 rounded-xl bg-slate-50 focus:border-blue-500 outline-none font-semibold text-lg" placeholder="Nhập họ tên...">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-2 text-slate-700">Mật khẩu</label>
+                                    <input type="password" id="l-pass" class="w-full p-4 border-2 border-slate-200 rounded-xl bg-slate-50 focus:border-blue-500 outline-none font-semibold text-lg">
+                                </div>
+                            </div>
+                        `}
+                        
+                        <button onclick="App.startQuiz()" class="w-full mt-10 bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl text-xl transition-all shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:scale-[1.02]">VÀO LÀM BÀI NGAY</button>
+                    </div>
+
+                    <div class="fixed bottom-6 right-6 flex gap-4">
+                        <button onclick="showModal('mod-teacher')" class="px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-lg border border-slate-200">👨‍🏫 Quản lý</button>
+                        <button onclick="showModal('mod-parent')" class="px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-lg border border-slate-200">👨‍👩‍👧 Phụ huynh</button>
+                    </div>
+                </div>
+                `;
+            },
+            
+            setLoginTab(t) { state.loginTab = t; this.render(); },
+
+            startQuiz() {
+                const tab = state.loginTab || 'GROUP';
+                if (tab === 'GROUP') {
+                    const group = document.getElementById('l-group').value;
+                    const mems = document.getElementById('l-members').value.trim();
+                    const arr = mems.split(',').filter(x => x.trim() !== '');
+                    if (arr.length < 2 || arr.length > 4) return alertMsg("Lỗi", "Vui lòng nhập từ 2 đến 4 thành viên, cách nhau bằng dấu phẩy.");
+                    state.userType = 'GROUP';
+                    state.userName = `Nhóm ${group}: ${mems}`;
+                } else {
+                    const name = document.getElementById('l-name').value.trim();
+                    const pass = document.getElementById('l-pass').value;
+                    if (!name) return alertMsg("Lỗi", "Vui lòng nhập Họ Tên.");
+                    if (pass !== '123456') return alertMsg("Lỗi", "Sai mật khẩu cá nhân.");
+                    state.userType = 'INDIVIDUAL';
+                    state.userName = name;
+                }
+
+                // Initialize Quiz
+                let qs = JSON.parse(JSON.stringify(QUESTION_BANK));
+                qs.forEach(q => {
+                    if (q.type === 'MC') {
+                        const correctText = q.opts[q.ans];
+                        q.opts = shuffle([...q.opts]);
+                        q.ans = q.opts.indexOf(correctText);
+                    }
+                });
+                state.questions = shuffle(qs);
+                state.currentQIndex = 0;
+                state.score = 0;
+                state.timeSpentTotal = 0;
+                state.screen = 'QUIZ';
+                
+                this.setupQuestion();
+                this.render();
+            },
+
+            setupQuestion() {
+                state.isAnswering = true;
+                state.timeLeft = 30;
+                state.selectedMcOpt = null;
+                state.fibAnswer = '';
+                state.matchLeftSelected = null;
+                state.matchPairs = {};
+                state.ddActiveSource = null;
+                state.ddAnswers = {};
+                
+                clearInterval(state.timerId);
+                state.startTime = Date.now();
+                
+                state.timerId = setInterval(() => {
+                    state.timeLeft--;
+                    const tel = document.getElementById('ui-timer');
+                    if (tel) {
+                        tel.innerText = state.timeLeft;
+                        if(state.timeLeft <= 5) tel.className = 'text-3xl font-mono text-red-500 animate-pulse';
+                    }
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.timerId);
+                        this.checkAnswer(true);
+                    }
+                }, 1000);
+            },
+
+            // --- HTML QUIZ ---
+            htmlQuiz() {
+                const q = state.questions[state.currentQIndex];
+                const isLast = state.currentQIndex === state.questions.length - 1;
+                
+                return `
+                <div class="flex-1 flex flex-col p-4 md:p-8 max-w-5xl mx-auto w-full relative z-10">
+                    <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="text-xl font-black text-slate-700 bg-slate-100 px-4 py-2 rounded-lg">CÂU ${state.currentQIndex + 1}/${state.questions.length}</div>
+                        <div class="flex items-center gap-8">
+                            <div class="text-lg font-bold text-slate-500">ĐIỂM: <span class="text-3xl text-blue-600 font-black">${state.score}</span></div>
+                            <div class="bg-slate-100 px-5 py-2 rounded-xl flex items-center gap-3 border border-slate-200">
+                                ⏱ <span id="ui-timer" class="text-3xl font-mono font-bold text-slate-700">${state.timeLeft}</span>s
+                            </div>
+                            <button onclick="App.endQuizEarly()" class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-colors border border-red-200">Nộp Sớm</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 md:p-10 rounded-3xl shadow-lg border border-slate-200 flex-1 flex flex-col">
+                        <div class="text-2xl md:text-3xl font-semibold mb-8 text-slate-800 leading-relaxed border-l-8 border-blue-500 pl-6">
+                            ${q.q}
+                        </div>
+
+                        ${this.htmlQuestionBody(q)}
+
+                        ${!state.isAnswering ? `
+                            <div class="mt-10 p-6 rounded-2xl border-2 animate-popIn ${state.lastResult ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+                                <h4 class="font-black text-xl mb-3 flex items-center gap-2 uppercase ${state.lastResult ? 'text-green-600' : 'text-red-600'}">
+                                    ${state.lastResult ? '✅ CHÍNH XÁC!' : '❌ CHƯA CHÍNH XÁC / HẾT GIỜ'}
+                                </h4>
+                                <div class="text-lg text-slate-700 leading-relaxed font-medium">
+                                    <span class="font-bold uppercase text-slate-400 text-sm block mb-1">GIẢI THÍCH CHI TIẾT:</span>
+                                    ${q.exp}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="mt-auto pt-10 flex justify-end">
+                            ${state.isAnswering 
+                                ? `<button onclick="App.checkAnswer()" class="px-12 py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl text-xl shadow-[0_5px_15px_rgba(37,99,235,0.3)] transition-transform hover:scale-105">CHỐT ĐÁP ÁN</button>`
+                                : `<button onclick="App.nextQ()" class="px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl text-xl shadow-[0_5px_15px_rgba(79,70,229,0.3)] transition-transform hover:scale-105">${isLast ? 'XEM KẾT QUẢ' : 'CÂU TIẾP THEO ➔'}</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            htmlQuestionBody(q) {
+                if (q.type === 'MC') {
+                    return `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            ${q.opts.map((opt, i) => `
+                                <div onclick="${state.isAnswering ? `App.clickMC(${i})` : ''}" 
+                                     class="p-6 border-2 rounded-2xl text-xl font-medium cursor-pointer transition-all flex items-center shadow-sm
+                                     ${state.selectedMcOpt === i ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-100 scale-[1.02]' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'}
+                                     ${!state.isAnswering && i === q.ans ? '!border-green-500 !bg-green-100' : ''}
+                                     ${!state.isAnswering && state.selectedMcOpt === i && i !== q.ans ? '!border-red-500 !bg-red-50' : ''}
+                                     ">
+                                    <span class="w-10 h-10 flex items-center justify-center bg-white border-2 border-slate-300 rounded-full mr-5 font-black text-slate-500 shrink-0">${String.fromCharCode(65+i)}</span>
+                                    <div class="flex-1 break-words">${opt}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (q.type === 'FIB') {
+                    return `
+                        <div class="flex items-center gap-6 p-8 bg-slate-50 rounded-2xl border-2 border-slate-200">
+                            <span class="font-black text-2xl text-slate-500">ĐÁP ÁN:</span>
+                            <input type="text" value="${state.fibAnswer}" ${!state.isAnswering ? 'disabled' : ''} oninput="App.inputFIB(this.value)" class="p-4 border-b-4 border-blue-500 bg-white font-black text-blue-700 text-3xl text-center w-64 focus:outline-none focus:bg-blue-50 transition-colors shadow-inner rounded-t-lg">
+                        </div>
+                    `;
+                }
+
+                if (q.type === 'MATCH') {
+                    if (!q.rdL) {
+                        q.rdL = q.pairs.map((p, i) => ({t: p.l, id: i}));
+                        q.rdR = shuffle(q.pairs.map((p, i) => ({t: p.r, id: i})));
+                    }
+                    return `
+                        <div class="flex gap-6 w-full items-stretch">
+                            <div class="flex-1 flex flex-col gap-4">
+                                ${q.rdL.map(item => `
+                                    <div onclick="${state.isAnswering ? `App.clickML(${item.id})` : ''}"
+                                         class="p-5 border-2 rounded-2xl cursor-pointer transition-all font-semibold text-lg flex items-center shadow-sm h-full min-h-[90px]
+                                         ${state.matchLeftSelected === item.id ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-100 scale-[1.02]' : 'border-slate-300 bg-white hover:bg-slate-50'}
+                                         ${!state.isAnswering && state.matchPairs[item.id] === item.id ? '!border-green-500 !bg-green-50' : ''}
+                                         ${!state.isAnswering && state.matchPairs[item.id] !== undefined && state.matchPairs[item.id] !== item.id ? '!border-red-500 !bg-red-50' : ''}
+                                         ">
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center mr-4 shrink-0">${item.id+1}</div>
+                                        <div class="flex-1 break-words">${item.t}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex flex-col justify-around w-16 items-center">
+                                ${q.rdL.map(item => {
+                                    const pId = state.matchPairs[item.id];
+                                    const txt = pId !== undefined ? String.fromCharCode(65 + q.rdR.findIndex(r => r.id === pId)) : '';
+                                    return `<div class="w-12 h-12 flex items-center justify-center font-black text-xl rounded-full ${txt ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-300'} transition-colors">${txt || '?'}</div>`;
+                                }).join('')}
+                            </div>
+                            <div class="flex-1 flex flex-col gap-4">
+                                ${q.rdR.map((item, idx) => {
+                                    const isSel = Object.values(state.matchPairs).includes(item.id);
+                                    return `
+                                    <div onclick="${state.isAnswering ? `App.clickMR(${item.id})` : ''}"
+                                         class="p-5 border-2 rounded-2xl cursor-pointer transition-all font-semibold text-lg flex items-center shadow-sm h-full min-h-[90px]
+                                         ${isSel ? 'border-indigo-300 bg-indigo-50 opacity-60' : 'border-slate-300 bg-white hover:bg-slate-50'}
+                                         ">
+                                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-black flex items-center justify-center mr-4 shrink-0">${String.fromCharCode(65+idx)}</div>
+                                        <div class="flex-1 break-words">${item.t}</div>
+                                    </div>
+                                    `
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (q.type === 'DD') {
+                    if(!q.rdOpts) q.rdOpts = shuffle([...q.opts]);
+                    let fText = q.text;
+                    Object.keys(q.correct).forEach(k => {
+                        const ans = state.ddAnswers[k];
+                        const content = ans ? ans.text : '...';
+                        const cls = ans ? 'filled' : '';
+                        fText = fText.replace(`[${k}]`, `<span class="ctm-target ${cls}" onclick="${state.isAnswering ? `App.clickDDTgt('${k}')` : ''}">${content}</span>`);
+                    });
+
+                    return `
+                        <div class="p-8 bg-slate-50 border-2 border-slate-200 rounded-3xl text-2xl leading-[2.2] mb-8 shadow-inner font-medium text-slate-700">
+                            ${fText}
+                        </div>
+                        <div class="flex flex-wrap gap-4 p-8 bg-white border-2 border-dashed border-slate-300 rounded-3xl justify-center min-h-[120px] items-center">
+                            ${q.rdOpts.map((opt, i) => {
+                                const isUsed = Object.values(state.ddAnswers).some(a => a.idx === i);
+                                const isActive = state.ddActiveSource !== null && state.ddActiveSource.idx === i;
+                                const safeOpt = opt.replace(/"/g, '&quot;');
+                                return `<div class="ctm-source text-xl ${isUsed ? 'used' : ''} ${isActive ? 'active' : ''}" data-idx="${i}" onclick="${state.isAnswering ? `App.clickDDSrc(this)` : ''}" data-rawtext="${safeOpt}">${opt}</div>`
+                            }).join('')}
+                        </div>
+                        <div class="text-center mt-4 text-slate-400 font-semibold italic">👆 Click vào từ ở khung dưới, sau đó click vào ô trống ở trên để điền.</div>
+                    `;
+                }
+            },
+
+            clickMC(i) { state.selectedMcOpt = i; this.render(); },
+            inputFIB(v) { state.fibAnswer = v; },
+            
+            clickML(id) { state.matchLeftSelected = id; this.render(); },
+            clickMR(rId) {
+                if (state.matchLeftSelected === null) return alertMsg("Hướng dẫn", "Vui lòng chọn 1 mục ở cột Trái trước.");
+                for (let k in state.matchPairs) { if (state.matchPairs[k] === rId) delete state.matchPairs[k]; }
+                state.matchPairs[state.matchLeftSelected] = rId;
+                state.matchLeftSelected = null;
+                this.render();
+            },
+
+            clickDDSrc(el) {
+                if(el.classList.contains('used')) return;
+                state.ddActiveSource = { idx: parseInt(el.dataset.idx), text: el.dataset.rawtext };
+                this.render();
+            },
+            clickDDTgt(tId) {
+                if (!state.ddActiveSource) {
+                    if (state.ddAnswers[tId]) { delete state.ddAnswers[tId]; this.render(); }
+                    return;
+                }
+                state.ddAnswers[tId] = state.ddActiveSource;
+                state.ddActiveSource = null;
+                this.render();
+            },
+
+            checkAnswer(isTimeout = false) {
+                if (!state.isAnswering) return;
+                clearInterval(state.timerId);
+                state.isAnswering = false;
+                state.timeSpentTotal += (Date.now() - state.startTime)/1000;
+                
+                const q = state.questions[state.currentQIndex];
+                let isCorrect = false;
+                
+                if (q.type === 'MC') isCorrect = state.selectedMcOpt === q.ans;
+                if (q.type === 'FIB') isCorrect = state.fibAnswer.toString().trim().replace(',','.') === q.ans;
+                if (q.type === 'MATCH') isCorrect = Object.keys(q.pairs).every((_, i) => state.matchPairs[i] === i);
+                if (q.type === 'DD') isCorrect = Object.keys(q.correct).every(k => state.ddAnswers[k] && state.ddAnswers[k].text === q.correct[k]);
+
+                if (isTimeout) isCorrect = false;
+                
+                state.lastResult = isCorrect;
+                if (isCorrect) { state.score++; playSound('correct'); }
+                else { playSound('wrong'); }
+                
+                this.render();
+            },
+
+            nextQ() {
+                if (state.currentQIndex < state.questions.length - 1) {
+                    state.currentQIndex++;
+                    this.setupQuestion();
+                    this.render();
+                } else this.finish();
+            },
+
+            endQuizEarly() { clearInterval(state.timerId); this.finish(); },
+
+            finish() {
+                state.history.push({
+                    type: state.userType,
+                    name: state.userName,
+                    score: state.score,
+                    time: Math.round(state.timeSpentTotal),
+                    date: new Date().toLocaleString()
+                });
+                localStorage.setItem('physics_history_v5', JSON.stringify(state.history));
+                state.screen = 'RESULT';
+                if (state.score >= 20) triggerConfetti();
+                this.render();
+            },
+
+            // --- HTML RESULT ---
+            htmlResult() {
+                let msg = state.score >= 20 ? "🎉 XUẤT SẮC! BẠN NẮM RẤT VỮNG LÝ THUYẾT VÀ BÀI TẬP!" : (state.score > 10 ? "👏 KHÁ TỐT! CỐ GẮNG ÔN LẠI VÀI CHỖ NHÉ!" : "⚠️ CẦN PHẢI XEM KĨ LẠI SÁCH GIÁO KHOA!");
+                let color = state.score >= 20 ? 'text-green-500' : (state.score > 10 ? 'text-yellow-500' : 'text-red-500');
+                
+                return `
+                <div class="flex-1 flex items-center justify-center p-4 z-10">
+                    <div class="bg-white p-12 rounded-3xl shadow-2xl text-center max-w-2xl w-full border-t-8 border-t-blue-600">
+                        <h2 class="text-4xl font-black text-slate-800 mb-2 uppercase">Hoàn Thành Bài Tập</h2>
+                        <div class="text-xl text-slate-500 font-bold mb-10 pb-6 border-b-2 border-slate-100">${state.userName}</div>
+                        
+                        <div class="flex justify-center gap-16 mb-10">
+                            <div>
+                                <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">ĐIỂM SỐ</div>
+                                <div class="text-7xl font-black ${color}">${state.score}<span class="text-4xl text-slate-300">/25</span></div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">THỜI GIAN</div>
+                                <div class="text-7xl font-black text-slate-700">${Math.round(state.timeSpentTotal)}<span class="text-4xl text-slate-300">s</span></div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 mb-10 shadow-inner">
+                            <div class="text-2xl font-bold text-slate-700">${msg}</div>
+                        </div>
+
+                        <button onclick="location.reload()" class="px-10 py-5 bg-slate-800 hover:bg-slate-900 font-black rounded-2xl text-white text-xl transition-all shadow-lg hover:scale-105">VỀ TRANG CHỦ LÀM LẠI</button>
+                    </div>
+                </div>
+                `;
+            },
+
+            loginAdmin(role) {
+                const p = document.getElementById(role === 'TEACHER' ? 'p-teach' : 'p-par').value;
+                if ((role === 'TEACHER' && p === '123') || (role === 'PARENT' && p === '123456')) {
+                    hideModal(role === 'TEACHER' ? 'mod-teacher' : 'mod-parent');
+                    state.screen = 'ADMIN';
+                    state.adminRole = role;
+                    state.adminTab = role === 'TEACHER' ? 'GROUP' : 'INDIV';
+                    this.render();
+                } else alertMsg("Lỗi", "Sai mật khẩu!");
+            },
+
+            htmlAdmin() {
+                const h = state.history;
+                const gs = h.filter(x => x.type === 'GROUP').sort((a,b) => b.score - a.score || a.time - b.time);
+                const is = h.filter(x => x.type === 'INDIVIDUAL').sort((a,b) => b.score - a.score || a.time - b.time);
+
+                return `
+                <div class="min-h-screen bg-slate-50 p-6 md:p-10 w-full z-10 relative">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-3xl font-black text-slate-800 uppercase flex items-center gap-3">
+                                ${state.adminRole === 'TEACHER' ? '👨‍🏫 Bảng Quản Lý - Giáo Viên' : '👨‍👩‍👧 Kết Quả Học Tập - Phụ Huynh'}
+                            </h2>
+                            <button onclick="location.reload()" class="px-6 py-3 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-xl transition-colors border border-red-200">Đăng xuất</button>
+                        </div>
+                        
+                        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+                            <div class="flex bg-slate-100 border-b-2 border-slate-200">
+                                ${state.adminRole === 'TEACHER' ? `<button onclick="state.adminTab='GROUP';App.render()" class="flex-1 py-5 font-black text-lg ${state.adminTab==='GROUP'?'text-blue-700 bg-white border-b-4 border-b-blue-600':'text-slate-500'}">THỐNG KÊ NHÓM</button>` : ''}
+                                <button onclick="state.adminTab='INDIV';App.render()" class="flex-1 py-5 font-black text-lg ${state.adminTab==='INDIV'?'text-blue-700 bg-white border-b-4 border-b-blue-600':'text-slate-500'}">THỐNG KÊ CÁ NHÂN</button>
+                                ${state.adminRole === 'TEACHER' ? `<button onclick="state.adminTab='DE';App.render()" class="flex-1 py-5 font-black text-lg ${state.adminTab==='DE'?'text-blue-700 bg-white border-b-4 border-b-blue-600':'text-slate-500'}">XEM TOÀN BỘ ĐỀ</button>` : ''}
+                            </div>
+                            
+                            <div class="p-8">
+                                ${state.adminTab === 'GROUP' || state.adminTab === 'INDIV' ? `
+                                    <table class="w-full text-left border-collapse">
+                                        <thead><tr class="bg-slate-50 text-slate-500 uppercase text-sm tracking-wider"><th class="p-5 font-black rounded-tl-xl w-24">Hạng</th><th class="p-5 font-black">Tên / Thành viên</th><th class="p-5 font-black text-center">Điểm</th><th class="p-5 font-black text-right">Thời gian</th><th class="p-5 font-black text-right rounded-tr-xl">Nộp lúc</th></tr></thead>
+                                        <tbody>
+                                            ${(state.adminTab === 'GROUP' ? gs : is).map((x, i) => `
+                                                <tr class="border-b border-slate-100 hover:bg-blue-50 transition-colors">
+                                                    <td class="p-5 font-black text-slate-400 text-xl">#${i+1}</td>
+                                                    <td class="p-5 font-bold text-slate-700 text-lg">${x.name}</td>
+                                                    <td class="p-5 font-black text-2xl text-blue-600 text-center">${x.score}/25</td>
+                                                    <td class="p-5 font-bold text-slate-500 text-right">${x.time}s</td>
+                                                    <td class="p-5 text-sm font-semibold text-slate-400 text-right">${x.date}</td>
+                                                </tr>
+                                            `).join('')}
+                                            ${(state.adminTab === 'GROUP' ? gs : is).length === 0 ? `<tr><td colspan="5" class="p-10 text-center text-slate-400 font-bold text-lg">Chưa có dữ liệu nộp bài.</td></tr>` : ''}
+                                        </tbody>
+                                    </table>
+                                ` : ''}
+
+                                ${state.adminTab === 'DE' ? `
+                                    <div class="space-y-8">
+                                        ${QUESTION_BANK.map((q, i) => `
+                                            <div class="p-8 bg-slate-50 rounded-2xl border border-slate-200">
+                                                <div class="font-bold text-xl mb-4 text-slate-800">Câu ${i+1}: ${q.q}</div>
+                                                ${q.type === 'MC' ? `<div class="mb-4 text-slate-500 font-medium">Các phương án: ${q.opts.join(' | ')}</div><div class="font-black text-green-600 text-lg">Đáp án: ${q.opts[q.ans]}</div>` : ''}
+                                                ${q.type === 'FIB' ? `<div class="font-black text-green-600 text-lg">Đáp án điền: ${q.ans}</div>` : ''}
+                                                ${q.type === 'MATCH' ? `<div class="font-black text-green-600 text-lg mb-2">Ghép đúng:</div><ul class="list-disc ml-6 text-slate-700 font-medium space-y-1">${q.pairs.map(p => `<li>${p.l} ➔ ${p.r}</li>`).join('')}</ul>` : ''}
+                                                ${q.type === 'DD' ? `<div class="mb-4 text-slate-500 font-medium">Văn bản gốc: ${q.text}</div><div class="font-black text-green-600 text-lg mb-2">Từ cần điền:</div><ul class="list-disc ml-6 text-slate-700 font-medium space-y-1">${Object.keys(q.correct).map(k=>`<li>Chỗ trống [${k}]: ${q.correct[k]}</li>`).join('')}</ul>` : ''}
+                                                <div class="mt-5 p-5 bg-blue-50 text-blue-800 rounded-xl border border-blue-100 font-medium leading-relaxed"><strong>Giải thích SGK:</strong> ${q.exp}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            htmlModals() {
+                return `
+                <div id="mod-teacher" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100">
+                        <h3 class="text-2xl font-black mb-6 text-slate-800 text-center">GIÁO VIÊN</h3>
+                        <input type="password" id="p-teach" class="w-full p-4 border-2 border-slate-200 rounded-xl mb-8 bg-slate-50 focus:border-blue-500 outline-none font-bold text-lg text-center">
+                        <div class="flex gap-4">
+                            <button onclick="hideModal('mod-teacher')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600 transition-colors">Hủy</button>
+                            <button onclick="App.loginAdmin('TEACHER')" class="flex-1 py-4 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-white transition-colors shadow-md">Đăng nhập</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mod-parent" class="modal-overlay">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100">
+                        <h3 class="text-2xl font-black mb-6 text-slate-800 text-center">PHỤ HUYNH</h3>
+                        <input type="password" id="p-par" class="w-full p-4 border-2 border-slate-200 rounded-xl mb-8 bg-slate-50 focus:border-indigo-500 outline-none font-bold text-lg text-center">
+                        <div class="flex gap-4">
+                            <button onclick="hideModal('mod-parent')" class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600 transition-colors">Hủy</button>
+                            <button onclick="App.loginAdmin('PARENT')" class="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl text-white transition-colors shadow-md">Đăng nhập</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="msg-modal" class="modal-overlay" style="z-index: 99999;">
+                    <div class="modal-content bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-t-blue-500 text-center">
+                        <h3 id="msg-title" class="text-2xl font-black mb-3 text-slate-800">Thông báo</h3>
+                        <p id="msg-body" class="text-slate-600 mb-8 leading-relaxed font-medium text-lg"></p>
+                        <button onclick="hideModal('msg-modal')" class="w-full py-4 bg-blue-600 hover:bg-blue-700 font-black rounded-xl text-white transition-colors shadow-md">Đã hiểu</button>
+                    </div>
+                </div>
+                `;
+            }
+        };
+
+        window.App = App;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+        window.onload = () => App.render();
+    </script>
+</body>
+</html>
